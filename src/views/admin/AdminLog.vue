@@ -6,21 +6,22 @@
     <div style="margin-bottom: 20px;">
       <el-input
         v-model="searchText"
-        placeholder="搜索用户名/操作内容"
+        placeholder="搜索操作用户/操作内容"
         style="width: 320px;"
         clearable
+        @keyup.enter.native="loadLogs"
       />
     </div>
 
     <!-- 日志表格 -->
-    <el-table :data="logList" border style="width: 100%;">
-      <el-table-column label="ID" prop="id" align="center" />
-      <el-table-column label="操作用户" prop="username" align="center" />
-      <el-table-column label="操作内容" prop="content" align="center" />
+    <el-table :data="logList" border style="width: 100%;" v-loading="loading">
+      <el-table-column label="ID" prop="id" align="center" width="80" />
+      <el-table-column label="用户ID" prop="userId" align="center" />
+      <el-table-column label="用户类型" prop="userType" align="center" />
+      <el-table-column label="操作内容" prop="operation" align="center" show-overflow-tooltip />
       <el-table-column label="操作时间" prop="createTime" align="center" />
-      <el-table-column label="IP地址" prop="ip" align="center" />
       
-      <el-table-column label="操作" align="center">
+      <el-table-column label="操作" align="center" width="120">
         <template slot-scope="scope">
           <el-button
             type="danger"
@@ -32,39 +33,80 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 分页 -->
+    <el-pagination
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="page"
+      :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total"
+      style="margin-top: 20px;text-align:right;"
+    >
+    </el-pagination>
   </div>
 </template>
 
 <script>
+import { getLogPage, deleteLog } from '@/api/admin';
+
 export default {
   name: 'AdminLog',
   data() {
     return {
       searchText: '',
-      logList: [
-        { id: 1, username: '张三', content: '登录系统', createTime: '2025-04-08 10:10:10', ip: '192.168.1.10' },
-        { id: 2, username: '李四', content: '借阅书籍《Vue实战》', createTime: '2025-04-08 11:20:30', ip: '192.168.1.11' },
-        { id: 3, username: '王五', content: '订阅书籍《Java编程思想》', createTime: '2025-04-08 14:30:00', ip: '192.168.1.12' },
-        { id: 4, username: 'admin', content: '删除用户', createTime: '2025-04-08 15:00:00', ip: '192.168.1.1' }
-      ]
+      loading: false,
+      logList: [],
+      page: 1,
+      pageSize: 10,
+      total: 0
     }
   },
-  computed: {
-    // 搜索过滤
-    filteredList() {
-      if (!this.searchText) return this.logList
-      return this.logList.filter(item => {
-        return item.username.includes(this.searchText) || item.content.includes(this.searchText)
-      })
-    }
+  mounted() {
+    this.loadLogs();
   },
   methods: {
-    // 删除日志
-    deleteLog(id) {
-      this.$confirm('确定删除该日志吗？', '提示', { type: 'warning' }).then(() => {
-        this.logList = this.logList.filter(item => item.id !== id)
-        this.$message.success('删除成功')
-      })
+    async loadLogs() {
+      this.loading = true;
+      try {
+        const res = await getLogPage(this.page, this.pageSize);
+        if (res.code === 1 || res.code === 200) {
+          this.logList = res.data.records || [];
+          this.total = res.data.total || 0;
+        } else {
+          this.$message.error(res.msg || '加载失败');
+        }
+      } catch (error) {
+        this.$message.error('加载日志列表失败');
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async deleteLog(id) {
+      this.$confirm('确定删除该日志吗？', '提示', { type: 'warning' }).then(async () => {
+        try {
+          const res = await deleteLog(id);
+          if (res.code === 1 || res.code === 200) {
+            this.$message.success('删除成功');
+            this.loadLogs();
+          } else {
+            this.$message.error(res.msg || '删除失败');
+          }
+        } catch (error) {
+          this.$message.error('删除失败');
+          console.error(error);
+        }
+      });
+    },
+    handleSizeChange(val) {
+      this.pageSize = val;
+      this.loadLogs();
+    },
+    handleCurrentChange(val) {
+      this.page = val;
+      this.loadLogs();
     }
   }
 }

@@ -9,75 +9,142 @@
         placeholder="搜索用户名/姓名"
         style="width: 300px;"
         clearable
+        @keyup.enter.native="loadReaders"
       />
     </div>
 
     <!-- 用户列表 -->
-    <el-table :data="userList" border style="width: 100%;">
-      <el-table-column label="ID" prop="id" align="center" />
+    <el-table :data="readerList" border style="width: 100%;" v-loading="loading">
+      <el-table-column label="ID" prop="id" align="center" width="80" />
       <el-table-column label="用户名" prop="username" align="center" />
       <el-table-column label="姓名" prop="name" align="center" />
-      <el-table-column label="角色" align="center">
+      <el-table-column label="状态" align="center" width="120">
         <template slot-scope="scope">
-          <el-tag type="primary" v-if="scope.row.role === 'admin'">
-            管理员
-          </el-tag>
-          <el-tag type="success" v-else>
-            普通用户
-          </el-tag>
+          <el-tag type="success" v-if="scope.row.status === 1">启用</el-tag>
+          <el-tag type="danger" v-else>禁用</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center">
+      <el-table-column label="创建时间" prop="createTime" align="center" />
+      <el-table-column label="操作" align="center" width="250">
         <template slot-scope="scope">
+          <el-button
+            size="mini"
+            :type="scope.row.status === 1 ? 'warning' : 'success'"
+            @click="toggleStatus(scope.row)"
+          >
+            {{ scope.row.status === 1 ? '禁用' : '启用' }}
+          </el-button>
           <el-button
             type="danger"
             size="mini"
-            @click="deleteUser(scope.row.id)"
+            @click="deleteReader(scope.row.id)"
           >
             删除
           </el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 分页 -->
+    <el-pagination
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="page"
+      :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total"
+      style="margin-top: 20px;text-align:right;"
+    >
+    </el-pagination>
   </div>
 </template>
 
 <script>
+import { getReaderPage, updateReaderStatus, deleteReader } from '@/api/admin';
+
 export default {
   name: "AdminUser",
   data() {
     return {
       searchText: "",
-      userList: [
-        { id: 1, username: "user01", name: "张三", role: "user" },
-        { id: 2, username: "user02", name: "李四", role: "user" },
-        { id: 3, username: "admin", name: "系统管理员", role: "admin" },
-      ],
+      loading: false,
+      readerList: [],
+      page: 1,
+      pageSize: 10,
+      total: 0
     };
   },
-  computed: {
-    // 搜索过滤
-    filteredList() {
-      if (!this.searchText) return this.userList;
-      return this.userList.filter((item) => {
-        return (
-          item.username.includes(this.searchText) ||
-          item.name.includes(this.searchText)
-        );
-      });
-    },
+  mounted() {
+    this.loadReaders();
   },
   methods: {
-    deleteUser(id) {
+    async loadReaders() {
+      this.loading = true;
+      try {
+        const res = await getReaderPage(this.page, this.pageSize);
+        if (res.code === 1 || res.code === 200) {
+          this.readerList = res.data.records || [];
+          this.total = res.data.total || 0;
+        } else {
+          this.$message.error(res.msg || '加载失败');
+        }
+      } catch (error) {
+        this.$message.error('加载读者列表失败');
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async toggleStatus(row) {
+      const newStatus = row.status === 1 ? 0 : 1;
+      const action = newStatus === 1 ? '启用' : '禁用';
+      this.$confirm(`确定要${action}该用户吗？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        try {
+          const res = await updateReaderStatus(row.id, newStatus);
+          if (res.code === 1 || res.code === 200) {
+            this.$message.success(`${action}成功`);
+            this.loadReaders();
+          } else {
+            this.$message.error(res.msg || `${action}失败`);
+          }
+        } catch (error) {
+          this.$message.error(`${action}失败`);
+          console.error(error);
+        }
+      });
+    },
+    async deleteReader(id) {
       this.$confirm("确定要删除该用户吗？", "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        type: "warning",
-      }).then(() => {
-        this.userList = this.userList.filter((item) => item.id !== id);
-        this.$message.success("删除成功！");
+        type: "warning"
+      }).then(async () => {
+        try {
+          const res = await deleteReader(id);
+          if (res.code === 1 || res.code === 200) {
+            this.$message.success("删除成功");
+            this.loadReaders();
+          } else {
+            this.$message.error(res.msg || '删除失败');
+          }
+        } catch (error) {
+          this.$message.error('删除失败');
+          console.error(error);
+        }
       });
     },
-  },
+    handleSizeChange(val) {
+      this.pageSize = val;
+      this.loadReaders();
+    },
+    handleCurrentChange(val) {
+      this.page = val;
+      this.loadReaders();
+    }
+  }
 };
 </script>

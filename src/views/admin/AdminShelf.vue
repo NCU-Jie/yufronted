@@ -17,11 +17,11 @@
 
     <!-- 表格 -->
     <el-table :data="shelfList" border style="width: 100%;">
-      <el-table-column label="ID" prop="id" align="center" />
+      <el-table-column label="ID" prop="id" align="center" width="80" />
       <el-table-column label="书架名称" prop="name" align="center" />
       <el-table-column label="位置" prop="location" align="center" />
-      <el-table-column label="备注" prop="remark" align="center" />
-      <el-table-column label="操作" align="center">
+      <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
+      <el-table-column label="操作" align="center" width="120">
         <template slot-scope="scope">
           <el-button
             type="danger"
@@ -44,7 +44,7 @@
           <el-input v-model="form.location" placeholder="例如：一楼A区" />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" />
+          <el-input v-model="form.remark" type="textarea" placeholder="请输入备注信息" />
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -62,11 +62,7 @@ export default {
     return {
       searchText: '',
       dialogVisible: false,
-      shelfList: [
-        { id: 1, name: '文学类书架', location: '一楼A区', remark: '存放小说、散文' },
-        { id: 2, name: '科技类书架', location: '一楼B区', remark: '计算机、理工' },
-        { id: 3, name: '少儿类书架', location: '二楼C区', remark: '儿童读物' }
-      ],
+      shelfList: [],
       form: {
         name: '',
         location: '',
@@ -84,16 +80,25 @@ export default {
   },
   methods: {
     addShelf() {
-      const newId = Math.max(...this.shelfList.map(s => s.id), 0) + 1
-      this.shelfList.push({ ...this.form, id: newId })
+      if (!this.form.name || !this.form.location) {
+        this.$message.warning('请填写书架名称和位置');
+        return;
+      }
+      
+      // TODO: 调用后端API添加书架
+      // const newId = Math.max(...this.shelfList.map(s => s.id), 0) + 1
+      // this.shelfList.push({ ...this.form, id: newId })
+      
       this.dialogVisible = false
       this.form = { name: '', location: '', remark: '' }
-      this.$message.success('添加成功')
+      this.$message.success('添加成功(模拟)')
     },
     deleteShelf(id) {
       this.$confirm('确定删除该书架吗？', '提示', { type: 'warning' }).then(() => {
-        this.shelfList = this.shelfList.filter(item => item.id !== id)
-        this.$message.success('删除成功')
+        // TODO: 调用后端API删除书架
+        // this.shelfList = this.shelfList.filter(item => item.id !== id)
+        
+        this.$message.success('删除成功(模拟)')
       })
     }
   }

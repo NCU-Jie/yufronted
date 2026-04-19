@@ -30,7 +30,8 @@ const adminModule: Module<AdminState, any> = {
       state.adminInfo = payload;
       localStorage.setItem('admin_token', payload.token);
       
-      sessionStorage.setItem('adminInfo', JSON.stringify({
+      // 修改:使用localStorage替代sessionStorage,确保持久化
+      localStorage.setItem('adminInfo', JSON.stringify({
         id: payload.id,
         userName: payload.userName,
         name: payload.name || ''
@@ -40,21 +41,24 @@ const adminModule: Module<AdminState, any> = {
     CLEAR_ADMIN_INFO(state) {
       state.adminInfo = null;
       localStorage.removeItem('admin_token');
-      sessionStorage.removeItem('adminInfo');
+      localStorage.removeItem('adminInfo');
     }
   },
 
   actions: {
     async login({ commit }, credentials: LoginParams) {
-      const res = await adminLogin(credentials);
-      const responseData = res.data;
+      const res: any = await adminLogin(credentials);
+      // 注意: 响应拦截器已经返回了 response.data,所以 res 就是业务数据
+      // res 的结构: { code: 1, msg: null, data: {...} }
 
-      if (responseData.code === 1 || responseData.code === 200) {
-        const data = responseData.data || responseData;
+      if (res.code === 1 || res.code === 200) {
+        const data = res.data || res;
         commit('SET_ADMIN_INFO', data);
         return true;
       }
-      throw new Error(responseData.msg || '登录失败');
+      
+      // 登录失败时,抛出包含后端msg的错误
+      throw new Error(res.msg || '登录失败');
     },
 
     logout({ commit }) {
@@ -65,16 +69,19 @@ const adminModule: Module<AdminState, any> = {
       const token = localStorage.getItem('admin_token');
       if (!token || !isValidToken(token)) {
         localStorage.removeItem('admin_token');
+        localStorage.removeItem('adminInfo');
         return;
       }
 
-      const sessionData = sessionStorage.getItem('adminInfo');
-      if (sessionData) {
+      // 修改:从localStorage读取用户信息
+      const adminData = localStorage.getItem('adminInfo');
+      if (adminData) {
         try {
-          const { id, name, userName } = JSON.parse(sessionData);
+          const { id, name, userName } = JSON.parse(adminData);
           commit('SET_ADMIN_INFO', { id, name, userName, token });
         } catch (e) {
-          sessionStorage.removeItem('adminInfo');
+          localStorage.removeItem('adminInfo');
+          localStorage.removeItem('admin_token');
         }
       }
     }

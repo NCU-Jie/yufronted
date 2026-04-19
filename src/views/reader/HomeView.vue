@@ -50,9 +50,9 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('user', ['userInfo']),
+    ...mapGetters('reader', ['readerInfo']),
     username() {
-      return this.userInfo?.name || '用户';
+      return this.readerInfo?.name || '用户';
     }
   },
   methods: {
@@ -63,7 +63,7 @@ export default {
     },
     async logout() {
       try {
-        await this.$store.dispatch('user/logout');
+        await this.$store.dispatch('reader/logout');
         this.$message.success('注销成功');
         this.$router.push('/login');
       } catch (error) {

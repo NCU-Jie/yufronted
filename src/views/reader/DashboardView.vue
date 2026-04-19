@@ -7,31 +7,36 @@
       <el-col :span="8">
         <el-card class="box-card">
           <div class="text">馆藏总量</div>
-          <div class="num">1260</div>
+          <div class="num">{{ statistics.total }}</div>
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card class="box-card">
           <div class="text">可借图书</div>
-          <div class="num">890</div>
+          <div class="num">{{ statistics.available }}</div>
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card class="box-card">
           <div class="text">已借出</div>
-          <div class="num">370</div>
+          <div class="num">{{ statistics.borrowed }}</div>
         </el-card>
       </el-col>
     </el-row>
 
     <!-- 最新公告 -->
-    <el-card style="margin-bottom: 20px;">
+    <el-card style="margin-bottom: 20px;" v-loading="announcementLoading">
       <h3>最新公告</h3>
-      <el-timeline>
-        <el-timeline-item timestamp="2025-04-01">图书馆周末正常开放</el-timeline-item>
-        <el-timeline-item timestamp="2025-03-28">新书上架：Java 编程思想</el-timeline-item>
-        <el-timeline-item timestamp="2025-03-25">借阅期限调整为 30 天</el-timeline-item>
+      <el-timeline v-if="announcements.length > 0">
+        <el-timeline-item 
+          v-for="item in announcements" 
+          :key="item.id" 
+          :timestamp="formatDate(item.createTime)"
+        >
+          {{ item.title }}
+        </el-timeline-item>
       </el-timeline>
+      <el-empty v-else description="暂无公告"></el-empty>
     </el-card>
 
     <!-- 图书搜索筛选区域 -->
@@ -71,13 +76,12 @@
     </el-card>
 
     <!-- 热门推荐图书 -->
-    <el-card>
+    <el-card v-loading="booksLoading">
       <h3>热门推荐图书</h3>
       <ul style="padding-left:20px;line-height:2">
-        <li>Vue 从入门到精通</li>
-        <li>SpringBoot 实战</li>
-        <li>计算机网络</li>
-        <li>数据结构与算法</li>
+        <li v-for="book in hotBooks" :key="book.id">
+          {{ book.bookName }} - {{ book.author }}
+        </li>
       </ul>
     </el-card>
 
@@ -85,6 +89,9 @@
 </template>
 
 <script>
+import { getAnnouncementPage, getBookPage } from '@/api/reader';
+import { getStatistics } from '@/api/admin';
+
 export default {
   name: "DashboardView",
   data() {
@@ -94,10 +101,83 @@ export default {
         bookName: "",
         author: "",
         publisher: ""
-      }
+      },
+      
+      // 统计数据
+      statistics: {
+        total: 0,
+        available: 0,
+        borrowed: 0
+      },
+      
+      // 公告列表
+      announcements: [],
+      announcementLoading: false,
+      
+      // 热门图书
+      hotBooks: [],
+      booksLoading: false
     };
   },
+  mounted() {
+    this.loadStatistics();
+    this.loadAnnouncements();
+    this.loadHotBooks();
+  },
   methods: {
+    // 加载统计数据 - 使用公共统计接口
+    async loadStatistics() {
+      try {
+        const res = await getStatistics();
+        if (res.code === 1 || res.code === 200) {
+          // 后端返回: { totalBooks, borrowedBooks, availableBooks }
+          this.statistics.total = res.data.totalBooks || 0;
+          this.statistics.borrowed = res.data.borrowedBooks || 0;
+          this.statistics.available = res.data.availableBooks || 0;
+        } else {
+          console.error('加载统计数据失败:', res.msg);
+        }
+      } catch (error) {
+        console.error('加载统计数据失败', error);
+      }
+    },
+    
+    // 加载公告列表
+    async loadAnnouncements() {
+      this.announcementLoading = true;
+      try {
+        const res = await getAnnouncementPage(1, 5);
+        if (res.code === 1 || res.code === 200) {
+          this.announcements = res.data.records || [];
+        } else {
+          this.$message.error(res.msg || '加载公告失败');
+        }
+      } catch (error) {
+        this.$message.error('加载公告失败');
+        console.error(error);
+      } finally {
+        this.announcementLoading = false;
+      }
+    },
+    
+    // 加载热门图书
+    async loadHotBooks() {
+      this.booksLoading = true;
+      try {
+        const res = await getBookPage(1, 6);
+        if (res.code === 1 || res.code === 200) {
+          this.hotBooks = res.data.records || [];
+        } else {
+          this.$message.error(res.msg || '加载热门图书失败');
+        }
+      } catch (error) {
+        this.$message.error('加载图书失败');
+        console.error(error);
+      } finally {
+        this.booksLoading = false;
+      }
+    },
+    
     handleSearch() {
       const params = {
         categories: this.selectedCategories,
@@ -106,7 +186,8 @@ export default {
         publisher: this.form.publisher
       };
       console.log("搜索条件：", params);
-      this.$message.success("搜索成功！");
+      // TODO: 调用搜索接口
+      this.$message.success("搜索功能开发中...");
     },
     handleReset() {
       this.selectedCategories = [];
@@ -116,6 +197,13 @@ export default {
         publisher: ""
       };
       this.$message.success("已重置搜索条件");
+    },
+    
+    // 格式化日期
+    formatDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('zh-CN');
     }
   }
 };

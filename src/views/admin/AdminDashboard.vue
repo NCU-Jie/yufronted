@@ -7,25 +7,25 @@
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">总用户数</div>
-          <div class="stat-num">218</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">馆藏书籍</div>
-          <div class="stat-num">1260</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">待处理预约</div>
-          <div class="stat-num">8</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">待处理订阅</div>
-          <div class="stat-num">5</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -34,25 +34,25 @@
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">公告总数</div>
-          <div class="stat-num">16</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">读者反馈</div>
-          <div class="stat-num">12</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">借阅记录</div>
-          <div class="stat-num">532</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card class="stat-card">
           <div class="stat-title">今日登录</div>
-          <div class="stat-num">43</div>
+          <div class="stat-num"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -83,23 +83,7 @@ export default {
   name: "AdminDashboard",
   data() {
     return {
-      menus: [
-        { name: "管理员信息管理", path: "/admin/manager", icon: "el-icon-user-solid" },
-        { name: "用户管理", path: "/admin/user", icon: "el-icon-user" },
-        { name: "书籍管理", path: "/admin/book", icon: "el-icon-book" },
-        { name: "书架管理", path: "/admin/shelf", icon: "el-icon-shelf" },
-        { name: "订阅管理", path: "/admin/order", icon: "el-icon-bell" },
-        { name: "预约管理", path: "/admin/order", icon: "el-icon-time" },
-        { name: "订阅通知管理", path: "/admin/order", icon: "el-icon-message" },
-        { name: "公告管理", path: "/admin/notice", icon: "el-icon-document" },
-        { name: "读者反馈管理", path: "/admin/notice", icon: "el-icon-chat-dot-round" },
-        { name: "用户行为日志", path: "/admin/log", icon: "el-icon-document-copy" },
-      ],
-      todoList: [
-        { title: "《Vue实战》预约申请", type: "预约", user: "张三", path: "/admin/order" },
-        { title: "《Java编程》订阅申请", type: "订阅", user: "李四", path: "/admin/order" },
-        { title: "希望增加新书", type: "反馈", user: "王五", path: "/admin/notice" },
-      ],
+    
     };
   },
 };

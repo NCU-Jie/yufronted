@@ -2,93 +2,191 @@
   <div class="my-borrow-container" style="padding: 20px;">
     <h3>我的借阅</h3>
 
-    <el-tabs v-model="activeTab" style="margin-top: 20px;">
+    <el-tabs v-model="activeTab" style="margin-top: 20px;" @tab-click="handleTabClick">
       <!-- 在借图书 -->
       <el-tab-pane label="在借图书" name="borrowing">
-        <el-table :data="borrowingList" border style="width:100%">
+        <el-table :data="borrowingList" border style="width:100%" v-loading="loading">
+
           <el-table-column prop="bookName" label="书名" />
-          <el-table-column prop="location" label="书架位置" />
-          <el-table-column prop="borrowDate" label="借阅日期" />
-          <el-table-column prop="returnDate" label="应还日期" />
-          <el-table-column prop="daysLeft" label="剩余天数" />
-          <el-table-column label="操作">
+          <el-table-column prop="borrowTime" label="借阅日期" />
+          <el-table-column prop="returnTime" label="应还日期" />
+          <el-table-column label="剩余天数">
             <template slot-scope="scope">
-              <el-button type="primary" size="mini" @click="renew(scope.row)">
-                续借
-              </el-button>
+              {{ calculateDaysLeft(scope.row.returnTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150">
+            <template slot-scope="scope">
               <el-button type="success" size="mini" @click="returnBook(scope.row)">
                 归还
               </el-button>
             </template>
           </el-table-column>
         </el-table>
+        
+        <!-- 分页 -->
+        <el-pagination
+          @size-change="handleBorrowingSizeChange"
+          @current-change="handleBorrowingCurrentChange"
+          :current-page="borrowingPage"
+          :page-size="borrowingPageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="borrowingTotal"
+          style="margin-top: 20px;text-align:right;"
+        >
+        </el-pagination>
       </el-tab-pane>
 
       <!-- 已还图书 -->
       <el-tab-pane label="已还图书" name="returned">
-        <el-table :data="returnedList" border style="width:100%">
+        <el-table :data="returnedList" border style="width:100%" v-loading="loading">
+
           <el-table-column prop="bookName" label="书名" />
-          <el-table-column prop="location" label="书架位置" />
-          <el-table-column prop="borrowDate" label="借阅日期" />
-          <el-table-column prop="realReturnDate" label="实际归还日期" />
+          <el-table-column prop="borrowTime" label="借阅日期" />
+          <el-table-column prop="returnTime" label="实际归还日期" />
         </el-table>
+        
+        <!-- 分页 -->
+        <el-pagination
+          @size-change="handleReturnedSizeChange"
+          @current-change="handleReturnedCurrentChange"
+          :current-page="returnedPage"
+          :page-size="returnedPageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="returnedTotal"
+          style="margin-top: 20px;text-align:right;"
+        >
+        </el-pagination>
       </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script>
+import { getMyBorrowPage, returnBook as apiReturnBook } from '@/api/reader';
+
 export default {
   name: "MyBorrow",
   data() {
     return {
       activeTab: "borrowing",
-      // 在借图书列表（带书架位置 + 倒计时）
-      borrowingList: [
-        {
-          id: 1,
-          bookName: "Vue从入门到精通",
-          location: "A区-1号书架-第2层", // 书架位置
-          borrowDate: "2025-03-20",
-          returnDate: "2025-04-20",
-          daysLeft: 12,
-        },
-        {
-          id: 2,
-          bookName: "SpringBoot实战",
-          location: "B区-3号书架-第1层",
-          borrowDate: "2025-03-25",
-          returnDate: "2025-04-25",
-          daysLeft: 17,
-        },
-      ],
-      // 已还记录
-      returnedList: [
-        {
-          id: 3,
-          bookName: "计算机网络",
-          location: "C区-2号书架-第3层",
-          borrowDate: "2025-01-10",
-          realReturnDate: "2025-02-10",
-        },
-      ],
+      loading: false,
+      
+      // 在借图书
+      borrowingList: [],
+      borrowingPage: 1,
+      borrowingPageSize: 10,
+      borrowingTotal: 0,
+      
+      // 已还图书
+      returnedList: [],
+      returnedPage: 1,
+      returnedPageSize: 10,
+      returnedTotal: 0
     };
   },
+  mounted() {
+    this.loadBorrowingList();
+  },
   methods: {
-    // 续借
-    renew(row) {
-      this.$message.success(`《${row.bookName}》续借成功！`);
+    // 加载在借列表 (status=0 表示借阅中)
+    async loadBorrowingList() {
+      this.loading = true;
+      try {
+        const res = await getMyBorrowPage({
+          page: this.borrowingPage,
+          pageSize: this.borrowingPageSize,
+          status: 0
+        });
+        if (res.code === 1 || res.code === 200) {
+          this.borrowingList = res.data.records || [];
+          this.borrowingTotal = res.data.total || 0;
+        } else {
+          this.$message.error(res.msg || '加载失败');
+        }
+      } catch (error) {
+        this.$message.error('加载在借列表失败');
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
     },
-    // 归还
-    returnBook(row) {
-      this.$message.success(`《${row.bookName}》归还成功！`);
-      // 归还后从在借列表移除
-      this.borrowingList = this.borrowingList.filter((item) => item.id !== row.id);
-      this.returnedList.push({
-        ...row,
-        realReturnDate: new Date().toLocaleDateString(),
+    
+    // 加载已还列表 (status=1 表示已归还)
+    async loadReturnedList() {
+      this.loading = true;
+      try {
+        const res = await getMyBorrowPage({
+          page: this.returnedPage,
+          pageSize: this.returnedPageSize,
+          status: 1
+        });
+        if (res.code === 1 || res.code === 200) {
+          this.returnedList = res.data.records || [];
+          this.returnedTotal = res.data.total || 0;
+        } else {
+          this.$message.error(res.msg || '加载失败');
+        }
+      } catch (error) {
+        this.$message.error('加载已还列表失败');
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    handleTabClick(tab) {
+      if (tab.name === 'borrowing') {
+        this.loadBorrowingList();
+      } else {
+        this.loadReturnedList();
+      }
+    },
+    
+    // 计算剩余天数
+    calculateDaysLeft(returnTime) {
+      if (!returnTime) return '-';
+      const returnDate = new Date(returnTime);
+      const today = new Date();
+      const diffTime = returnDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? `${diffDays}天` : '已逾期';
+    },
+    
+    // 归还书籍
+    async returnBook(row) {
+      this.$confirm(`确定归还该书籍吗？`, '提示', { type: 'warning' }).then(async () => {
+        try {
+          const res = await apiReturnBook(row.id);
+          if (res.code === 1 || res.code === 200) {
+            this.$message.success('归还成功');
+            this.loadBorrowingList();
+          } else {
+            this.$message.error(res.msg || '归还失败');
+          }
+        } catch (error) {
+          this.$message.error('归还失败');
+          console.error(error);
+        }
       });
     },
-  },
+    
+    handleBorrowingSizeChange(val) {
+      this.borrowingPageSize = val;
+      this.loadBorrowingList();
+    },
+    handleBorrowingCurrentChange(val) {
+      this.borrowingPage = val;
+      this.loadBorrowingList();
+    },
+    handleReturnedSizeChange(val) {
+      this.returnedPageSize = val;
+      this.loadReturnedList();
+    },
+    handleReturnedCurrentChange(val) {
+      this.returnedPage = val;
+      this.loadReturnedList();
+    }
+  }
 };
 </script>
