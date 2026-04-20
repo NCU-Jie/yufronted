@@ -15,8 +15,8 @@
 
     <!-- 日志表格 -->
     <el-table :data="logList" border style="width: 100%;" v-loading="loading">
-      <el-table-column label="ID" prop="id" align="center" width="80" />
-      <el-table-column label="用户ID" prop="userId" align="center" />
+
+      <el-table-column label="操作人" prop="name" align="center" />
       <el-table-column label="用户类型" prop="userType" align="center" />
       <el-table-column label="操作内容" prop="operation" align="center" show-overflow-tooltip />
       <el-table-column label="操作时间" prop="createTime" align="center" />

@@ -67,7 +67,7 @@ export default {
     },
     async logout() {
       try {
-        await this.$store.dispatch('user/logout');
+        await this.$store.dispatch('admin/logout');
         this.$message.success('注销成功');
         this.$router.push('/login');
       } catch (error) {

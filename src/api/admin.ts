@@ -97,6 +97,7 @@ export interface Log {
   id: number;
   userId: number;
   userType: string;
+  name: string;
   operation: string;
   createTime: string;
 }
@@ -273,6 +274,25 @@ export function deleteBook(bookId: number) {
 export function getStatistics() {
   return request<Result<{ totalBooks: number; borrowedBooks: number; availableBooks: number }>>({
     url: '/common/statistics',
+    method: 'get'
+  });
+}
+
+// ==================== 管理员仪表盘统计 ====================
+
+// 获取管理员仪表盘统计数据
+export function getAdminDashboardStatistics() {
+  return request<Result<{
+    totalUsers: number;
+    totalBooks: number;
+    pendingReserves: number;
+    pendingSubscribes: number;
+    totalAnnouncements: number;
+    totalFeedbacks: number;
+    totalBorrows: number;
+    todayLogins: number;
+  }>>({
+    url: '/admin/statistics/dashboard',
     method: 'get'
   });
 }

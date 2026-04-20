@@ -79,7 +79,7 @@
 
     <!-- 发布公告弹窗 -->
     <el-dialog title="发布公告" :visible.sync="addNoticeDialog" width="500px">
-      <el-form :model="noticeForm" label-width="70px" ref="noticeFormRef" :rules="noticeRules">
+      <el-form :model="noticeForm" label-width="100px" ref="noticeFormRef" :rules="noticeRules">
         <el-form-item label="公告标题" prop="title">
           <el-input v-model="noticeForm.title" placeholder="请输入公告标题" />
         </el-form-item>
@@ -95,7 +95,7 @@
 
     <!-- 回复反馈弹窗 -->
     <el-dialog title="回复反馈" :visible.sync="replyDialog" width="500px">
-      <el-form :model="replyForm" label-width="70px" ref="replyFormRef" :rules="replyRules">
+      <el-form :model="replyForm" label-width="100px" ref="replyFormRef" :rules="replyRules">
         <el-form-item label="反馈内容">
           <el-input type="textarea" v-model="currentFeedback.content" :rows="3" disabled />
         </el-form-item>
