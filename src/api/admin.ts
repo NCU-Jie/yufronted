@@ -199,11 +199,16 @@ export function updateAdmin(data: AdminUpdateDTO) {
 }
 
 // 分页查询管理员列表
-export function getAdminPage(page: number, pageSize: number) {
+export function getAdminPage(data: {
+  page: number;
+  pageSize: number;
+  username?: string;
+  name?: string;
+}) {
   return request<Result<PageResult>>({
     url: '/admin/page',
-    method: 'get',
-    params: { page, pageSize }
+    method: 'post',
+    data
   });
 }
 
@@ -220,6 +225,15 @@ export function deleteAdmin(adminId: number) {
   return request<Result>({
     url: `/admin/${adminId}`,
     method: 'delete'
+  });
+}
+
+// 重置管理员密码
+export function resetAdminPassword(data: { id: number; newPassword: string }) {
+  return request<Result>({
+    url: '/admin/reset-password',
+    method: 'put',
+    data
   });
 }
 
@@ -318,11 +332,16 @@ export function updateReader(data: ReaderUpdateDTO) {
 }
 
 // 分页查询读者列表
-export function getReaderPage(page: number, pageSize: number) {
+export function getReaderPage(data: {
+  page: number;
+  pageSize: number;
+  username?: string;
+  name?: string;
+}) {
   return request<Result<PageResult<Reader>>>({
     url: '/admin/reader/page',
-    method: 'get',
-    params: { page, pageSize }
+    method: 'post',
+    data
   });
 }
 

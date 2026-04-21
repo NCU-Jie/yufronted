@@ -3,19 +3,22 @@
     <h3 style="margin-bottom: 20px;">用户管理</h3>
 
     <!-- 搜索栏 -->
-    <div style="margin-bottom: 20px;">
-      <el-input
-        v-model="searchText"
-        placeholder="搜索用户名/姓名"
-        style="width: 300px;"
-        clearable
-        @keyup.enter.native="loadReaders"
-      />
-    </div>
+    <el-form :inline="true" class="search-form" style="margin-bottom: 20px;">
+      <el-form-item label="账号">
+        <el-input v-model="searchForm.username" placeholder="请输入账号" clearable />
+      </el-form-item>
+      <el-form-item label="姓名">
+        <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="loadReaders">搜索</el-button>
+        <el-button @click="resetSearch">重置</el-button>
+      </el-form-item>
+    </el-form>
 
     <!-- 用户列表 -->
     <el-table :data="readerList" border style="width: 100%;" v-loading="loading">
-      <el-table-column label="ID" prop="id" align="center" width="80" />
+
       <el-table-column label="用户名" prop="username" align="center" />
       <el-table-column label="姓名" prop="name" align="center" />
       <el-table-column label="状态" align="center" width="120">
@@ -66,7 +69,10 @@ export default {
   name: "AdminUser",
   data() {
     return {
-      searchText: "",
+      searchForm: {
+        username: '',
+        name: ''
+      },
       loading: false,
       readerList: [],
       page: 1,
@@ -81,7 +87,12 @@ export default {
     async loadReaders() {
       this.loading = true;
       try {
-        const res = await getReaderPage(this.page, this.pageSize);
+        const res = await getReaderPage({
+          page: this.page,
+          pageSize: this.pageSize,
+          username: this.searchForm.username || undefined,
+          name: this.searchForm.name || undefined
+        });
         if (res.code === 1 || res.code === 200) {
           this.readerList = res.data.records || [];
           this.total = res.data.total || 0;
@@ -94,6 +105,12 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    resetSearch() {
+      this.searchForm.username = '';
+      this.searchForm.name = '';
+      this.page = 1;
+      this.loadReaders();
     },
     async toggleStatus(row) {
       const newStatus = row.status === 1 ? 0 : 1;
