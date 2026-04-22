@@ -51,6 +51,19 @@ export interface Reserve {
   status: number; // 0-预约中, 1-已完成, 2-已取消
 }
 
+export interface Book {
+  id: number;
+  bookName: string;
+  author: string;
+  isbn: string;
+  publish: string;
+  shelfCode: string;
+  stock: number;
+  total: number;
+  imgUrl?: string;
+  createTime: string;
+}
+
 export interface PageResult<T = any> {
   records: T[];
   total: number;
@@ -191,5 +204,40 @@ export function reserveBook(bookId: number) {
   return request<Result>({
     url: `/reader/reserve/${bookId}`,
     method: 'post'
+  });
+}
+
+// ==================== 书籍相关（读者） ====================
+
+// 分页查询书籍列表（无查询条件）
+export function getBookPage(page: number, pageSize: number) {
+  return request<Result<PageResult<Book>>>({
+    url: '/common/book/page',
+    method: 'post',
+    data: { page, pageSize }
+  });
+}
+
+// 分页查询书籍列表（带查询条件）
+export function searchBooks(data: {
+  page: number;
+  pageSize: number;
+  bookName?: string;
+  author?: string;
+  publish?: string;
+  category?: string;
+}) {
+  return request<Result<PageResult<Book>>>({
+    url: '/common/book/page',
+    method: 'post',
+    data
+  });
+}
+
+// 根据ID查询书籍详情
+export function getBookById(bookId: number) {
+  return request<Result<Book>>({
+    url: `/common/book/${bookId}`,
+    method: 'get'
   });
 }

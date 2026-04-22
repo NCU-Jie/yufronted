@@ -1,14 +1,17 @@
 <template>
-  <div style="padding: 20px;">
-    <h3 style="margin-bottom: 20px;">用户管理</h3>
+  <div class="admin-user" style="padding: 20px;">
+    <div class="header-tool" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+      <h3>用户管理</h3>
+      <el-button type="primary" size="default" @click="showAddDialog">+ 新增读者</el-button>
+    </div>
 
     <!-- 搜索栏 -->
-    <el-form :inline="true" class="search-form" style="margin-bottom: 20px;">
+    <el-form :inline="true" :model="searchForm" class="search-form" style="margin-bottom: 20px;">
       <el-form-item label="账号">
-        <el-input v-model="searchForm.username" placeholder="请输入账号" clearable />
+        <el-input v-model="searchForm.username" placeholder="请输入账号" />
       </el-form-item>
       <el-form-item label="姓名">
-        <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
+        <el-input v-model="searchForm.name" placeholder="请输入姓名" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="loadReaders">搜索</el-button>
@@ -17,18 +20,18 @@
     </el-form>
 
     <!-- 用户列表 -->
-    <el-table :data="readerList" border style="width: 100%;" v-loading="loading">
+    <el-table :data="readerList" border stripe style="width: 100%;" highlight-current-row v-loading="loading">
 
-      <el-table-column label="用户名" prop="username" align="center" />
-      <el-table-column label="姓名" prop="name" align="center" />
-      <el-table-column label="状态" align="center" width="120">
+      <el-table-column prop="username" label="用户名" align="center" />
+      <el-table-column prop="name" label="姓名" align="center" />
+      <el-table-column prop="status" label="状态" align="center" width="100">
         <template slot-scope="scope">
           <el-tag type="success" v-if="scope.row.status === 1">启用</el-tag>
           <el-tag type="danger" v-else>禁用</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" prop="createTime" align="center" />
-      <el-table-column label="操作" align="center" width="250">
+      <el-table-column prop="createTime" label="创建时间" align="center" />
+      <el-table-column label="操作" align="center" width="350">
         <template slot-scope="scope">
           <el-button
             size="mini"
@@ -37,13 +40,8 @@
           >
             {{ scope.row.status === 1 ? '禁用' : '启用' }}
           </el-button>
-          <el-button
-            type="danger"
-            size="mini"
-            @click="deleteReader(scope.row.id)"
-          >
-            删除
-          </el-button>
+          <el-button type="warning" size="mini" @click="showResetPasswordDialog(scope.row)">重置密码</el-button>
+          <el-button type="danger" size="mini" @click="deleteReader(scope.row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -59,15 +57,62 @@
       style="margin-top: 20px;text-align:right;"
     >
     </el-pagination>
+
+    <!-- 新增读者对话框 -->
+    <el-dialog title="新增读者" :visible.sync="addDialogVisible" width="500px">
+      <el-form :model="addForm" :rules="addRules" ref="addFormRef" label-width="80px">
+        <el-form-item label="账号" prop="username">
+          <el-input v-model="addForm.username" placeholder="请输入账号" />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="addForm.password" type="password" placeholder="请输入密码" show-password />
+        </el-form-item>
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="addForm.name" placeholder="请输入姓名" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="addDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitAddForm" :loading="addLoading">确定</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 重置密码对话框 -->
+    <el-dialog title="重置密码" :visible.sync="resetPasswordDialogVisible" width="500px">
+      <el-form :model="resetPasswordForm" :rules="resetPasswordRules" ref="resetPasswordFormRef" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input v-model="resetPasswordForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input v-model="resetPasswordForm.newPassword" type="password" placeholder="请输入新密码" show-password />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="resetPasswordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="resetPasswordDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitResetPassword" :loading="resetPasswordLoading">确定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getReaderPage, updateReaderStatus, deleteReader } from '@/api/admin';
+import { getReaderPage, updateReaderStatus, deleteReader, addReader, resetReaderPassword } from '@/api/admin';
 
 export default {
   name: "AdminUser",
   data() {
+    // 确认密码验证规则
+    const validateConfirmPassword = (rule, value, callback) => {
+      if (value !== this.resetPasswordForm.newPassword) {
+        callback(new Error('两次输入密码不一致'));
+      } else {
+        callback();
+      }
+    };
+
     return {
       searchForm: {
         username: '',
@@ -77,7 +122,47 @@ export default {
       readerList: [],
       page: 1,
       pageSize: 10,
-      total: 0
+      total: 0,
+      // 新增读者相关
+      addDialogVisible: false,
+      addLoading: false,
+      addForm: {
+        username: '',
+        password: '',
+        name: ''
+      },
+      addRules: {
+        username: [
+          { required: true, message: '请输入账号', trigger: 'blur' },
+          { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+        ],
+        password: [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
+        ],
+        name: [
+          { required: true, message: '请输入姓名', trigger: 'blur' }
+        ]
+      },
+      // 重置密码相关
+      resetPasswordDialogVisible: false,
+      resetPasswordLoading: false,
+      resetPasswordForm: {
+        id: null,
+        username: '',
+        newPassword: '',
+        confirmPassword: ''
+      },
+      resetPasswordRules: {
+        newPassword: [
+          { required: true, message: '请输入新密码', trigger: 'blur' },
+          { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
+        ],
+        confirmPassword: [
+          { required: true, message: '请再次输入密码', trigger: 'blur' },
+          { validator: validateConfirmPassword, trigger: 'blur' }
+        ]
+      }
     };
   },
   mounted() {
@@ -161,6 +246,86 @@ export default {
     handleCurrentChange(val) {
       this.page = val;
       this.loadReaders();
+    },
+    // 显示新增对话框
+    showAddDialog() {
+      this.addDialogVisible = true;
+      this.resetAddForm();
+    },
+    // 重置表单
+    resetAddForm() {
+      this.addForm = {
+        username: '',
+        password: '',
+        name: ''
+      };
+      if (this.$refs.addFormRef) {
+        this.$refs.addFormRef.clearValidate();
+      }
+    },
+    // 提交新增表单
+    submitAddForm() {
+      this.$refs.addFormRef.validate(async (valid) => {
+        if (!valid) return;
+        
+        this.addLoading = true;
+        try {
+          const res = await addReader(this.addForm);
+          if (res.code === 1 || res.code === 200) {
+            this.$message.success('新增成功');
+            this.addDialogVisible = false;
+            this.loadReaders();
+          } else {
+            this.$message.error(res.msg || '新增失败');
+          }
+        } catch (error) {
+          this.$message.error('新增失败');
+          console.error(error);
+        } finally {
+          this.addLoading = false;
+        }
+      });
+    },
+    // 显示重置密码对话框
+    showResetPasswordDialog(row) {
+      this.resetPasswordForm = {
+        id: row.id,
+        username: row.username,
+        newPassword: '',
+        confirmPassword: ''
+      };
+      this.resetPasswordDialogVisible = true;
+      // 清除验证
+      this.$nextTick(() => {
+        if (this.$refs.resetPasswordFormRef) {
+          this.$refs.resetPasswordFormRef.clearValidate();
+        }
+      });
+    },
+    // 提交重置密码
+    submitResetPassword() {
+      this.$refs.resetPasswordFormRef.validate(async (valid) => {
+        if (!valid) return;
+
+        this.resetPasswordLoading = true;
+        try {
+          const res = await resetReaderPassword({
+            id: this.resetPasswordForm.id,
+            newPassword: this.resetPasswordForm.newPassword
+          });
+          if (res.code === 1 || res.code === 200) {
+            this.$message.success('密码重置成功');
+            this.resetPasswordDialogVisible = false;
+          } else {
+            this.$message.error(res.msg || '密码重置失败');
+          }
+        } catch (error) {
+          this.$message.error('密码重置失败');
+          console.error(error);
+        } finally {
+          this.resetPasswordLoading = false;
+        }
+      });
     }
   }
 };

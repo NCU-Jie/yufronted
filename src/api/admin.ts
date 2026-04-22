@@ -15,6 +15,7 @@ export interface BookAddDTO {
   shelfCode: string;
   stock: number;
   total: number;
+  imgUrl?: string;
 }
 
 export interface BookUpdateDTO extends BookAddDTO {
@@ -30,6 +31,7 @@ export interface Book {
   shelfCode: string;
   stock: number;
   total: number;
+  imgUrl?: string;
   createTime: string;
 }
 
@@ -257,23 +259,6 @@ export function updateBook(data: BookUpdateDTO) {
   });
 }
 
-// 分页查询书籍列表
-export function getBookPage(page: number, pageSize: number) {
-  return request<Result<PageResult<Book>>>({
-    url: '/admin/book/page',
-    method: 'get',
-    params: { page, pageSize }
-  });
-}
-
-// 根据ID查询书籍详情
-export function getBookById(bookId: number) {
-  return request<Result<Book>>({
-    url: `/admin/book/${bookId}`,
-    method: 'get'
-  });
-}
-
 // 删除书籍
 export function deleteBook(bookId: number) {
   return request<Result>({
@@ -283,6 +268,30 @@ export function deleteBook(bookId: number) {
 }
 
 // ==================== 公共接口 ====================
+
+// 分页查询书籍列表（公共接口，支持搜索条件）
+export function getBookPage(data: {
+  page: number;
+  pageSize: number;
+  bookName?: string;
+  author?: string;
+  publish?: string;
+  category?: string;
+}) {
+  return request<Result<PageResult<Book>>>({
+    url: '/common/book/page',
+    method: 'post',
+    data
+  });
+}
+
+// 根据ID查询书籍详情（公共接口）
+export function getBookById(bookId: number) {
+  return request<Result<Book>>({
+    url: `/common/book/${bookId}`,
+    method: 'get'
+  });
+}
 
 // 获取统计数据(公共接口)
 export function getStatistics() {
@@ -367,6 +376,15 @@ export function deleteReader(readerId: number) {
   return request<Result>({
     url: `/admin/reader/${readerId}`,
     method: 'delete'
+  });
+}
+
+// 重置读者密码
+export function resetReaderPassword(data: { id: number; newPassword: string }) {
+  return request<Result>({
+    url: '/admin/reader/reset-password',
+    method: 'put',
+    data
   });
 }
 

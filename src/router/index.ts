@@ -82,12 +82,6 @@ const routes = [
         meta: { title: "图书管理" }
       },
       {
-        path: 'shelf',
-        name: 'AdminShelf',
-        component: () => import("@/views/admin/AdminShelf.vue"),
-        meta: { title: "书架管理" }
-      },
-      {
         path: 'order',
         name: 'AdminOrder',
         component: () => import("@/views/admin/AdminOrder.vue"),

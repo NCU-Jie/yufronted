@@ -2,7 +2,7 @@
   <div class="admin-manager" style="padding: 20px;">
     <div class="header-tool" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
       <h3>管理员信息管理</h3>
-      <el-button type="primary" @click="openAddDialog">+ 新增管理员</el-button>
+      <el-button type="primary" size="default" @click="openAddDialog">+ 新增管理员</el-button>
     </div>
 
     <!-- 搜索栏 -->
