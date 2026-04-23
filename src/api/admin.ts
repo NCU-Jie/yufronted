@@ -269,7 +269,7 @@ export function deleteBook(bookId: number) {
 
 // ==================== 公共接口 ====================
 
-// 分页查询书籍列表（公共接口，支持搜索条件）
+// 分页查询书籍列表（管理员专用接口，支持搜索条件）
 export function getBookPage(data: {
   page: number;
   pageSize: number;
@@ -279,7 +279,7 @@ export function getBookPage(data: {
   category?: string;
 }) {
   return request<Result<PageResult<Book>>>({
-    url: '/common/book/page',
+    url: '/admin/book/page',
     method: 'post',
     data
   });

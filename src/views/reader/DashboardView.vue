@@ -67,31 +67,24 @@
         <div class="category-section">
           <span class="label">图书分类（多选）：</span>
           <el-checkbox-group v-model="selectedCategories" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
-            <el-checkbox label="科学技术"></el-checkbox>
-            <el-checkbox label="艺术类"></el-checkbox>
             <el-checkbox label="计算机"></el-checkbox>
-            <el-checkbox label="AI技术"></el-checkbox>
-            <el-checkbox label="软件工程"></el-checkbox>
-            <el-checkbox label="建筑学"></el-checkbox>
             <el-checkbox label="文学"></el-checkbox>
-            <el-checkbox label="中国文学"></el-checkbox>
-            <el-checkbox label="外国文学"></el-checkbox>
-            <el-checkbox label="现代小说"></el-checkbox>
-            <el-checkbox label="古代小说"></el-checkbox>
+            <el-checkbox label="科普"></el-checkbox>
+            <el-checkbox label="教育"></el-checkbox>
+            <el-checkbox label="历史人文"></el-checkbox>
+            <el-checkbox label="经济管理"></el-checkbox>
+            <el-checkbox label="艺术"></el-checkbox>
+            <el-checkbox label="哲学心理"></el-checkbox>
           </el-checkbox-group>
         </div>
 
         <!-- 搜索条件 -->
-        <div style="margin-top: 20px; display: flex; gap: 15px; max-width: 500px;">
-          <el-input v-model="searchForm.bookName" placeholder="书籍名"></el-input>
-          <el-input v-model="searchForm.author" placeholder="作者"></el-input>
-          <el-input v-model="searchForm.publish" placeholder="出版社"></el-input>
-        </div>
-
-        <!-- 搜索按钮 -->
-        <div style="margin-top: 15px;">
+        <div style="margin-top: 20px; display: flex; gap: 15px; max-width: 800px; margin-left: auto; margin-right: auto; justify-content: center; align-items: center;">
+          <el-input v-model="searchForm.bookName" placeholder="书籍名" style="width: 180px;"></el-input>
+          <el-input v-model="searchForm.author" placeholder="作者" style="width: 180px;"></el-input>
+          <el-input v-model="searchForm.publish" placeholder="出版社" style="width: 180px;"></el-input>
           <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索图书</el-button>
-          <el-button style="margin-left:10px" @click="handleReset">重置</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </div>
       </div>
     </el-card>
@@ -104,9 +97,8 @@
           v-for="book in hotBooks" 
           :key="book.id" 
           class="book-item"
-          @click="showBookDetail(book)"
         >
-          <div class="book-cover">
+          <div class="book-cover" @click="showBookDetail(book)">
             <el-image 
               v-if="book.imgUrl"
               :src="getImageUrl(book.imgUrl)"
@@ -122,7 +114,7 @@
             </div>
           </div>
           <div class="book-info">
-            <div class="book-title">{{ book.bookName }}</div>
+            <div class="book-title" @click="showBookDetail(book)">{{ book.bookName }}</div>
             <div class="book-author">作者：{{ book.author }}</div>
             <div class="book-publish">出版社：{{ book.publish }}</div>
             <div class="book-stock">
@@ -130,6 +122,32 @@
               <span :class="book.stock > 0 ? 'stock-available' : 'stock-unavailable'">
                 {{ book.stock > 0 ? `${book.stock} 本可借` : '暂无库存' }}
               </span>
+            </div>
+            <div class="book-actions">
+              <el-button 
+                v-if="book.stock > 0"
+                type="primary" 
+                size="mini" 
+                @click.stop="handleBorrow(book)"
+              >
+                借阅
+              </el-button>
+              <el-button 
+                v-else
+                type="warning" 
+                size="mini" 
+                @click.stop="handleReserve(book)"
+              >
+                预约
+              </el-button>
+              <el-button 
+                :type="book.isCollected ? 'danger' : 'info'" 
+                size="mini" 
+                @click.stop="toggleCollect(book)"
+                :icon="book.isCollected ? 'el-icon-star-on' : 'el-icon-star-off'"
+              >
+                {{ book.isCollected ? '已收藏' : '收藏' }}
+              </el-button>
             </div>
           </div>
         </div>
@@ -186,7 +204,7 @@
 </template>
 
 <script>
-import { getAnnouncementPage, getBookPage, searchBooks } from '@/api/reader';
+import { getAnnouncementPage, getBookPage, searchBooks, borrowBook, reserveBook, addCollect, deleteCollect } from '@/api/reader';
 import { getStatistics } from '@/api/admin';
 
 export default {
@@ -285,6 +303,7 @@ export default {
       try {
         const res = await getBookPage(1, 10);
         if (res.code === 1 || res.code === 200) {
+          // 后端已返回isCollected字段，直接使用
           this.hotBooks = res.data.records || [];
         } else {
           this.$message.error(res.msg || '加载图书失败');
@@ -312,6 +331,7 @@ export default {
         });
         
         if (res.code === 1 || res.code === 200) {
+          // 后端已返回isCollected字段，直接使用
           this.hotBooks = res.data.records || [];
           this.isSearching = true;
           if (this.hotBooks.length > 0) {
@@ -364,6 +384,70 @@ export default {
     showBookDetail(book) {
       this.currentBook = book;
       this.bookDetailDialogVisible = true;
+    },
+    
+    // 处理借阅
+    async handleBorrow(book) {
+      try {
+        await this.$confirm('确认借阅该图书吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        });
+        
+        const res = await borrowBook(book.id);
+        if (res.code === 1 || res.code === 200) {
+          this.$message.success('借阅成功');
+          // 刷新图书列表，更新库存
+          this.loadHotBooks();
+        } else {
+          this.$message.error(res.msg || '借阅失败');
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          this.$message.error(error.message || '借阅失败');
+        }
+      }
+    },
+    
+    // 处理预约
+    async handleReserve(book) {
+      try {
+        await this.$confirm('确认预约该图书吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'info'
+        });
+        
+        const res = await reserveBook(book.id);
+        if (res.code === 1 || res.code === 200) {
+          this.$message.success('预约成功');
+        } else {
+          this.$message.error(res.msg || '预约失败');
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          this.$message.error(error.message || '预约失败');
+        }
+      }
+    },
+    
+    // 切换收藏状态
+    async toggleCollect(book) {
+      try {
+        if (book.isCollected) {
+          await deleteCollect(book.id);
+          this.$message.success('已取消收藏');
+        } else {
+          await addCollect(book.id);
+          this.$message.success('已收藏');
+        }
+        // 刷新图书列表，更新收藏状态
+        this.loadHotBooks();
+      } catch (error) {
+        this.$message.error('操作失败');
+        console.error(error);
+      }
     }
   }
 };
@@ -541,6 +625,12 @@ export default {
   font-weight: 500;
 }
 
+.book-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
 /* 图书详情对话框内容样式 */
 .book-detail {
   display: flex;
@@ -572,5 +662,4 @@ export default {
   font-size: 14px;
   color: #606266;
 }
-
 </style>

@@ -57,6 +57,7 @@
       <el-table-column label="作者" prop="author" align="center" />
       <el-table-column label="ISBN" prop="isbn" align="center" />
       <el-table-column label="出版社" prop="publish" align="center" />
+      <el-table-column label="分类" prop="category" align="center" />
       <el-table-column label="书架编号" prop="shelfCode" align="center" />
       <el-table-column label="库存" prop="stock" align="center" width="100" />
       <el-table-column label="总数" prop="total" align="center" width="100" />
@@ -123,6 +124,18 @@
         <el-form-item label="出版社" prop="publish">
           <el-input v-model="bookForm.publish" placeholder="请输入出版社" />
         </el-form-item>
+        <el-form-item label="分类" prop="category">
+          <el-select v-model="bookForm.category" placeholder="请选择分类" style="width: 100%;">
+            <el-option label="计算机" value="计算机"></el-option>
+            <el-option label="文学" value="文学"></el-option>
+            <el-option label="科普" value="科普"></el-option>
+            <el-option label="教育" value="教育"></el-option>
+            <el-option label="历史人文" value="历史人文"></el-option>
+            <el-option label="经济管理" value="经济管理"></el-option>
+            <el-option label="艺术" value="艺术"></el-option>
+            <el-option label="哲学心理" value="哲学心理"></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="书架编号" prop="shelfCode">
           <el-input v-model="bookForm.shelfCode" placeholder="请输入书架编号" />
         </el-form-item>
@@ -167,6 +180,7 @@ export default {
         author: '',
         isbn: '',
         publish: '',
+        category: '',
         shelfCode: '',
         stock: 0,
         total: 0,

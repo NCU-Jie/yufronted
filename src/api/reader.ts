@@ -186,6 +186,22 @@ export function cancelReserve(reserveId: number) {
   });
 }
 
+// 确认领取
+export function confirmPickup(reserveId: number) {
+  return request<Result>({
+    url: `/reader/reserve/confirm/${reserveId}`,
+    method: 'put'
+  });
+}
+
+// 取消领取
+export function cancelPickup(reserveId: number) {
+  return request<Result>({
+    url: `/reader/reserve/cancel-pickup/${reserveId}`,
+    method: 'put'
+  });
+}
+
 // 分页查询我的预约列表
 export function getMyReservePage(params: {
   page: number;
@@ -212,7 +228,7 @@ export function reserveBook(bookId: number) {
 // 分页查询书籍列表（无查询条件）
 export function getBookPage(page: number, pageSize: number) {
   return request<Result<PageResult<Book>>>({
-    url: '/common/book/page',
+    url: '/reader/book/page',
     method: 'post',
     data: { page, pageSize }
   });
@@ -228,7 +244,7 @@ export function searchBooks(data: {
   category?: string;
 }) {
   return request<Result<PageResult<Book>>>({
-    url: '/common/book/page',
+    url: '/reader/book/page',
     method: 'post',
     data
   });
@@ -237,7 +253,36 @@ export function searchBooks(data: {
 // 根据ID查询书籍详情
 export function getBookById(bookId: number) {
   return request<Result<Book>>({
-    url: `/common/book/${bookId}`,
+    url: `/reader/book/${bookId}`,
     method: 'get'
+  });
+}
+
+// ==================== 收藏相关（读者） ====================
+
+// 添加收藏
+export function addCollect(bookId: number) {
+  return request<Result>({
+    url: '/reader/collect/add',
+    method: 'post',
+    params: { bookId }
+  });
+}
+
+// 取消收藏
+export function deleteCollect(bookId: number) {
+  return request<Result>({
+    url: '/reader/collect/delete',
+    method: 'post',
+    params: { bookId }
+  });
+}
+
+// 查询我的收藏列表（分页）
+export function getMyCollectList(page: number, pageSize: number) {
+  return request<Result<PageResult<any>>>({
+    url: '/reader/collect/list',
+    method: 'get',
+    params: { page, pageSize }
   });
 }

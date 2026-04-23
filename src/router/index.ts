@@ -18,6 +18,15 @@ const routes = [
       notNeedAuth: true
     }
   },
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("@/views/reader/RegisterView.vue"),
+    meta: {
+      title: "注册",
+      notNeedAuth: true
+    }
+  },
 
 
   // ====================
@@ -45,6 +54,12 @@ const routes = [
         name: 'UserBorrow',
         component: () => import("@/views/reader/BorrowView.vue"),
         meta: { title: "我的借阅" }
+      },
+      {
+        path: 'reserve',
+        name: 'UserReserve',
+        component: () => import("@/views/reader/ReserveView.vue"),
+        meta: { title: "我的预约" }
       },
       {
         path: 'search',

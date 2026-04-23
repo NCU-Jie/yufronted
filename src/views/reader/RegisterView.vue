@@ -146,12 +146,18 @@ import { register } from '@/api/reader';
     background-color: #f5f5f5;
   }
   
+  h1 {
+    margin-bottom: 20px;
+    color: #303133;
+    font-size: 24px;
+  }
+  
   .register-form {
     width: 360px;
     padding: 30px;
     background: #fff;
     border-radius: 4px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   }
   
   .login-link {

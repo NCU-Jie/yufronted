@@ -6,7 +6,22 @@
       <!-- 在借图书 -->
       <el-tab-pane label="在借图书" name="borrowing">
         <el-table :data="borrowingList" border style="width:100%" v-loading="loading">
-
+          <el-table-column label="封面" prop="imgUrl" align="center" width="100">
+            <template slot-scope="scope">
+              <el-image
+                v-if="scope.row.imgUrl"
+                :src="getImageUrl(scope.row.imgUrl)"
+                fit="cover"
+                style="width: 60px; height: 80px; border-radius: 4px;"
+                :preview-src-list="[getImageUrl(scope.row.imgUrl)]"
+              >
+                <div slot="error" class="image-error">
+                  <i class="el-icon-picture-outline"></i>
+                </div>
+              </el-image>
+              <span v-else class="no-image">无图片</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="bookName" label="书名" />
           <el-table-column prop="borrowTime" label="借阅日期" />
           <el-table-column prop="returnTime" label="应还日期" />
@@ -40,7 +55,22 @@
       <!-- 已还图书 -->
       <el-tab-pane label="已还图书" name="returned">
         <el-table :data="returnedList" border style="width:100%" v-loading="loading">
-
+          <el-table-column label="封面" prop="imgUrl" align="center" width="100">
+            <template slot-scope="scope">
+              <el-image
+                v-if="scope.row.imgUrl"
+                :src="getImageUrl(scope.row.imgUrl)"
+                fit="cover"
+                style="width: 60px; height: 80px; border-radius: 4px;"
+                :preview-src-list="[getImageUrl(scope.row.imgUrl)]"
+              >
+                <div slot="error" class="image-error">
+                  <i class="el-icon-picture-outline"></i>
+                </div>
+              </el-image>
+              <span v-else class="no-image">无图片</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="bookName" label="书名" />
           <el-table-column prop="borrowTime" label="借阅日期" />
           <el-table-column prop="returnTime" label="实际归还日期" />
@@ -153,6 +183,15 @@ export default {
       return diffDays > 0 ? `${diffDays}天` : '已逾期';
     },
     
+    // 获取图片完整URL
+    getImageUrl(imgUrl) {
+      if (!imgUrl) return '';
+      // 清理URL中的特殊字符（反引号、引号等）
+      const cleanUrl = imgUrl.replace(/[`'"]/g, '');
+      // 拼接完整URL
+      return 'http://localhost:8080' + cleanUrl;
+    },
+    
     // 归还书籍
     async returnBook(row) {
       this.$confirm(`确定归还该书籍吗？`, '提示', { type: 'warning' }).then(async () => {
@@ -190,3 +229,22 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.my-borrow-container h3 {
+  margin-bottom: 10px;
+}
+
+.image-error,
+.no-image {
+  width: 60px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  color: #c0c4cc;
+  font-size: 24px;
+  border-radius: 4px;
+}
+</style>

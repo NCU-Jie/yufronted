@@ -14,6 +14,7 @@
         >
           <el-menu-item index="/reader/dashboard">首页</el-menu-item>
           <el-menu-item index="/reader/borrow">我的借阅</el-menu-item>
+          <el-menu-item index="/reader/reserve">我的预约</el-menu-item>
           <el-menu-item index="/reader/collection">我的收藏</el-menu-item>
         
         </el-menu>
