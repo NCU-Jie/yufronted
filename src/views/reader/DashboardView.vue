@@ -89,9 +89,9 @@
       </div>
     </el-card>
 
-    <!-- 热门推荐图书 -->
+    <!-- 热门推荐图书 / 搜索结果 -->
     <div class="books-section" v-loading="booksLoading">
-      <h3 style="margin-bottom: 15px;">热门图书</h3>
+      <h3 style="margin-bottom: 15px;">{{ isSearching ? '搜索结果' : '热门图书' }}</h3>
       <div v-if="hotBooks.length > 0" class="book-list">
         <div 
           v-for="book in hotBooks" 
@@ -152,7 +152,79 @@
           </div>
         </div>
       </div>
+      <div v-else-if="isSearching" class="search-empty">
+        <el-empty description="未找到匹配的图书"></el-empty>
+        <div class="subscribe-hint">
+          <p>没有找到想要的图书？<el-button type="primary" size="small" @click="showSubscribeDialog">订阅图书</el-button></p>
+        </div>
+      </div>
       <el-empty v-else description="暂无图书"></el-empty>
+    </div>
+
+    <!-- 猜你喜欢推荐图书 -->
+    <div class="books-section" v-loading="recommendLoading">
+      <h3 style="margin-bottom: 15px;">猜你喜欢</h3>
+      <div v-if="recommendBooks.length > 0" class="book-list">
+        <div 
+          v-for="book in recommendBooks" 
+          :key="book.id" 
+          class="book-item"
+        >
+          <div class="book-cover" @click="showBookDetail(book)">
+            <el-image 
+              v-if="book.imgUrl"
+              :src="getImageUrl(book.imgUrl)"
+              fit="cover"
+              class="book-img"
+            >
+              <div slot="error" class="image-error">
+                <i class="el-icon-picture-outline"></i>
+              </div>
+            </el-image>
+            <div v-else class="no-image">
+              <i class="el-icon-picture-outline"></i>
+            </div>
+          </div>
+          <div class="book-info">
+            <div class="book-title" @click="showBookDetail(book)">{{ book.bookName }}</div>
+            <div class="book-author">作者：{{ book.author }}</div>
+            <div class="book-publish">出版社：{{ book.publish }}</div>
+            <div class="book-stock">
+              <span class="stock-label">库存：</span>
+              <span :class="book.stock > 0 ? 'stock-available' : 'stock-unavailable'">
+                {{ book.stock > 0 ? `${book.stock} 本可借` : '暂无库存' }}
+              </span>
+            </div>
+            <div class="book-actions">
+              <el-button 
+                v-if="book.stock > 0"
+                type="primary" 
+                size="mini" 
+                @click.stop="handleBorrow(book)"
+              >
+                借阅
+              </el-button>
+              <el-button 
+                v-else
+                type="warning" 
+                size="mini" 
+                @click.stop="handleReserve(book)"
+              >
+                预约
+              </el-button>
+              <el-button 
+                :type="book.isCollected ? 'danger' : 'info'" 
+                size="mini" 
+                @click.stop="toggleCollect(book)"
+                :icon="book.isCollected ? 'el-icon-star-on' : 'el-icon-star-off'"
+              >
+                {{ book.isCollected ? '已收藏' : '收藏' }}
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无推荐图书"></el-empty>
     </div>
 
     <!-- 图书详情对话框 -->
@@ -200,11 +272,48 @@
       </div>
     </el-dialog>
 
+    <!-- 订阅图书对话框 -->
+    <el-dialog 
+      title="订阅图书" 
+      :visible.sync="subscribeDialogVisible" 
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="subscribeForm" :rules="subscribeRules" ref="subscribeForm" label-width="80px">
+        <el-form-item label="书名" prop="bookName">
+          <el-input 
+            v-model="subscribeForm.bookName" 
+            placeholder="请输入书名"
+            :value="searchForm.bookName"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="作者" prop="author">
+          <el-input 
+            v-model="subscribeForm.author" 
+            placeholder="请输入作者（选填）"
+            :value="searchForm.author"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <el-input 
+            type="textarea" 
+            v-model="subscribeForm.remark" 
+            placeholder="请输入备注信息（选填）"
+            :rows="3"
+          ></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="subscribeDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubscribe" :loading="subscribeLoading">确认订阅</el-button>
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
 <script>
-import { getAnnouncementPage, getBookPage, searchBooks, borrowBook, reserveBook, addCollect, deleteCollect } from '@/api/reader';
+import { getAnnouncementPage, getBookPage, searchBooks, getRecommendBooks, borrowBook, reserveBook, addCollect, deleteCollect, submitSubscribe } from '@/api/reader';
 import { getStatistics } from '@/api/admin';
 
 export default {
@@ -240,6 +349,10 @@ export default {
       hotBooks: [],
       booksLoading: false,
       
+      // 推荐图书（猜你喜欢）
+      recommendBooks: [],
+      recommendLoading: false,
+      
       // 搜索结果
       searchResults: [],
       searchTotal: 0,
@@ -247,13 +360,28 @@ export default {
       
       // 图书详情对话框
       bookDetailDialogVisible: false,
-      currentBook: null
+      currentBook: null,
+      
+      // 订阅图书对话框
+      subscribeDialogVisible: false,
+      subscribeForm: {
+        bookName: "",
+        author: "",
+        remark: ""
+      },
+      subscribeRules: {
+        bookName: [
+          { required: true, message: '请输入书名', trigger: 'blur' }
+        ]
+      },
+      subscribeLoading: false
     };
   },
   mounted() {
     this.loadStatistics();
     this.loadAnnouncements();
     this.loadHotBooks();
+    this.loadRecommendBooks();
   },
   methods: {
     // 加载统计数据 - 使用公共统计接口
@@ -313,6 +441,24 @@ export default {
         console.error(error);
       } finally {
         this.booksLoading = false;
+      }
+    },
+    
+    // 加载推荐图书（猜你喜欢）
+    async loadRecommendBooks() {
+      this.recommendLoading = true;
+      try {
+        const res = await getRecommendBooks();
+        if (res.code === 1 || res.code === 200) {
+          // 后端已返回isCollected字段，直接使用
+          this.recommendBooks = res.data || [];
+        } else {
+          console.error('加载推荐图书失败:', res.msg);
+        }
+      } catch (error) {
+        console.error('加载推荐图书失败', error);
+      } finally {
+        this.recommendLoading = false;
       }
     },
     
@@ -448,6 +594,40 @@ export default {
         this.$message.error('操作失败');
         console.error(error);
       }
+    },
+    
+    // 显示订阅图书对话框
+    showSubscribeDialog() {
+      this.subscribeForm = {
+        bookName: this.searchForm.bookName,
+        author: this.searchForm.author,
+        remark: ""
+      };
+      this.subscribeDialogVisible = true;
+    },
+    
+    // 处理订阅
+    handleSubscribe() {
+      this.$refs.subscribeForm.validate(async valid => {
+        if (valid) {
+          this.subscribeLoading = true;
+          try {
+            // 调用订阅图书接口
+            const res = await submitSubscribe(this.subscribeForm);
+            if (res.code === 1 || res.code === 200) {
+              this.$message.success('订阅成功');
+              this.subscribeDialogVisible = false;
+            } else {
+              this.$message.error(res.msg || '订阅失败');
+            }
+          } catch (error) {
+            this.$message.error('订阅出错');
+            console.error(error);
+          } finally {
+            this.subscribeLoading = false;
+          }
+        }
+      });
     }
   }
 };
@@ -542,19 +722,21 @@ export default {
 }
 
 .book-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
 .book-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
   padding: 15px;
   border: 1px solid #ebeef5;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
+  background: #fff;
 }
 
 .book-item:hover {
@@ -563,9 +745,9 @@ export default {
 }
 
 .book-cover {
-  width: 80px;
-  height: 100px;
-  margin-right: 15px;
+  width: 120px;
+  height: 150px;
+  margin-bottom: 12px;
   flex-shrink: 0;
 }
 
@@ -590,25 +772,34 @@ export default {
 
 .book-info {
   flex: 1;
+  width: 100%;
+  text-align: center;
 }
 
 .book-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #303133;
   margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .book-author,
 .book-publish {
-  font-size: 14px;
+  font-size: 13px;
   color: #606266;
   margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .book-stock {
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 8px;
+  margin-bottom: 12px;
 }
 
 .stock-label {
@@ -628,6 +819,31 @@ export default {
 .book-actions {
   margin-top: 12px;
   display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* 搜索空状态样式 */
+.search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.subscribe-hint {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #606266;
+}
+
+.subscribe-hint p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
 }
 

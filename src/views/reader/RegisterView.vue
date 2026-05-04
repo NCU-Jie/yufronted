@@ -28,6 +28,14 @@
           ></el-input>
         </el-form-item>
         
+        <el-form-item prop="phone">
+          <el-input v-model="registerForm.phone" placeholder="手机号" clearable></el-input>
+        </el-form-item>
+        
+        <el-form-item prop="email">
+          <el-input v-model="registerForm.email" placeholder="邮箱" clearable></el-input>
+        </el-form-item>
+        
         
         <el-button 
           type="primary" 
@@ -81,6 +89,8 @@ import { register } from '@/api/reader';
           username: '',
           password: '',
           confirmPassword: '',
+          phone: '',
+          email: '',
         },
         rules: {
           username: [
@@ -92,6 +102,14 @@ import { register } from '@/api/reader';
           ],
           confirmPassword: [
             { required: true, validator: validatePass2, trigger: 'blur' }
+          ],
+          phone: [
+            { required: true, message: '请输入手机号', trigger: 'blur' },
+            { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+          ],
+          email: [
+            { required: true, message: '请输入邮箱', trigger: 'blur' },
+            { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
           ],
         }
       };
@@ -111,15 +129,17 @@ import { register } from '@/api/reader';
             name: this.registerForm.name,
             username: this.registerForm.username,
             password: this.registerForm.password,
+            phone: this.registerForm.phone,
+            email: this.registerForm.email,
           });
           
-          if (response.data.code === 1) {
-            this.$message.success('注册成功');
+          if (response.code === 1) {
+            this.$message.success(response.data || '注册成功');
             // 跳转到登录页
             this.$router.push('/login');
       
           } else {
-            this.$message.error(response.data.msg || '注册失败');
+            this.$message.error(response.msg || '注册失败');
           }
         } catch (error) {
           console.error('注册失败:', error);

@@ -27,6 +27,9 @@
             {{ username }}<i class="el-icon-arrow-down el-icon--right"></i>
           </span>
           <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+            <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
+            <el-dropdown-item command="feedback">我要反馈</el-dropdown-item>
             <el-dropdown-item command="logout">注销登录</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -58,7 +61,13 @@ export default {
   },
   methods: {
     handleCommand(command) {
-      if (command === 'logout') {
+      if (command === 'profile') {
+        this.$router.push('/reader/profile');
+      } else if (command === 'changePassword') {
+        this.$router.push('/reader/change-password');
+      } else if (command === 'feedback') {
+        this.$router.push('/reader/feedback');
+      } else if (command === 'logout') {
         this.logout();
       }
     },

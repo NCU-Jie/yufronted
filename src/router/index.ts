@@ -66,6 +66,24 @@ const routes = [
         name: 'UserSearch',
         component: () => import("@/views/reader/SearchView.vue"),
         meta: { title: "图书检索" }
+      },
+      {
+        path: 'profile',
+        name: 'UserProfile',
+        component: () => import("@/views/reader/ProfileView.vue"),
+        meta: { title: "个人中心" }
+      },
+      {
+        path: 'change-password',
+        name: 'UserChangePassword',
+        component: () => import("@/views/reader/ChangePasswordView.vue"),
+        meta: { title: "修改密码" }
+      },
+      {
+        path: 'feedback',
+        name: 'UserFeedback',
+        component: () => import("@/views/reader/FeedbackView.vue"),
+        meta: { title: "我要反馈" }
       }
     ]
   },

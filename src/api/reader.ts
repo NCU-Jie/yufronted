@@ -64,6 +64,31 @@ export interface Book {
   createTime: string;
 }
 
+export interface BookVO {
+  id: number;
+  bookName: string;
+  author: string;
+  isbn: string;
+  publish: string;
+  shelfCode: string;
+  stock: number;
+  total: number;
+  imgUrl?: string;
+  score?: number;
+  isCollected?: boolean;
+}
+
+export interface ReaderInfo {
+  id: number;
+  username: string;
+  password: string | null;
+  name: string;
+  email: string;
+  phone: string;
+  status: number;
+  createTime: string;
+}
+
 export interface PageResult<T = any> {
   records: T[];
   total: number;
@@ -87,11 +112,54 @@ export function readerLogin(data: LoginParams) {
 }
 
 // 读者注册
-export function readerRegister(data: LoginParams & { name: string }) {
+export function readerRegister(data: LoginParams & { name: string; phone?: string; email?: string }) {
   return request<Result>({
     url: '/reader/register',
     method: 'post',
     data
+  });
+}
+
+// 获取读者个人信息
+export function getReaderInfo() {
+  return request<Result<ReaderInfo>>({
+    url: '/reader/info',
+    method: 'get'
+  });
+}
+
+// 修改邮箱
+export function updateEmail(data: { email: string }) {
+  return request<Result>({
+    url: '/reader/email',
+    method: 'put',
+    data
+  });
+}
+
+// 修改手机号
+export function updatePhone(data: { phone: string }) {
+  return request<Result>({
+    url: '/reader/phone',
+    method: 'put',
+    data
+  });
+}
+
+// 修改密码
+export function updatePassword(data: { oldPassword: string; newPassword: string }) {
+  return request<Result>({
+    url: '/reader/password',
+    method: 'put',
+    data
+  });
+}
+
+// 获取推荐图书（猜你喜欢）
+export function getRecommendBooks() {
+  return request<Result<BookVO[]>>({
+    url: '/reader/book/recommend',
+    method: 'get'
   });
 }
 
@@ -286,3 +354,6 @@ export function getMyCollectList(page: number, pageSize: number) {
     params: { page, pageSize }
   });
 }
+
+// 别名导出，兼容旧代码
+export const register = readerRegister;
