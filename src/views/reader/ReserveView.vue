@@ -12,14 +12,16 @@
                 v-if="scope.row.imgUrl"
                 :src="getImageUrl(scope.row.imgUrl)"
                 fit="cover"
-                style="width: 60px; height: 80px; border-radius: 4px;"
-                :preview-src-list="[getImageUrl(scope.row.imgUrl)]"
+                style="width: 60px; height: 80px; border-radius: 4px; cursor: pointer;"
+                @click="showBookDetail(scope.row)"
               >
                 <div slot="error" class="image-error">
                   <i class="el-icon-picture-outline"></i>
                 </div>
               </el-image>
-              <span v-else class="no-image">无图片</span>
+              <div v-else class="no-image" style="cursor: pointer;" @click="showBookDetail(scope.row)">
+                <i class="el-icon-picture-outline"></i>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="bookName" label="书名" />
@@ -31,7 +33,7 @@
               </el-tag>
             </template>
           </el-table-column>
-z          <el-table-column label="操作" width="250">
+          <el-table-column label="操作" width="250">
             <template slot-scope="scope">
               <el-button 
                 v-if="scope.row.status === 3"
@@ -83,14 +85,16 @@ z          <el-table-column label="操作" width="250">
                 v-if="scope.row.imgUrl"
                 :src="getImageUrl(scope.row.imgUrl)"
                 fit="cover"
-                style="width: 60px; height: 80px; border-radius: 4px;"
-                :preview-src-list="[getImageUrl(scope.row.imgUrl)]"
+                style="width: 60px; height: 80px; border-radius: 4px; cursor: pointer;"
+                @click="showBookDetail(scope.row)"
               >
                 <div slot="error" class="image-error">
                   <i class="el-icon-picture-outline"></i>
                 </div>
               </el-image>
-              <span v-else class="no-image">无图片</span>
+              <div v-else class="no-image" style="cursor: pointer;" @click="showBookDetail(scope.row)">
+                <i class="el-icon-picture-outline"></i>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="bookName" label="书名" />
@@ -147,11 +151,60 @@ z          <el-table-column label="操作" width="250">
         </el-pagination>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 图书详情对话框 -->
+    <el-dialog 
+      title="图书详情" 
+      :visible.sync="bookDetailDialogVisible" 
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="currentBook" class="book-detail">
+        <div class="detail-header">
+          <div class="detail-cover">
+            <el-image 
+              v-if="currentBook.imgUrl"
+              :src="getImageUrl(currentBook.imgUrl)"
+              fit="cover"
+              style="width: 150px; height: 200px;"
+            >
+              <div slot="error" class="image-error">
+                <i class="el-icon-picture-outline" style="font-size: 48px;"></i>
+              </div>
+            </el-image>
+            <div v-else class="no-image" style="width: 150px; height: 200px;">
+              <i class="el-icon-picture-outline" style="font-size: 48px;"></i>
+            </div>
+          </div>
+          <div class="detail-info">
+            <h3>{{ currentBook.bookName }}</h3>
+            <p><strong>作者：</strong>{{ currentBook.author }}</p>
+            <p><strong>ISBN：</strong>{{ currentBook.isbn }}</p>
+            <p><strong>出版社：</strong>{{ currentBook.publish }}</p>
+            <p><strong>书架编号：</strong>{{ currentBook.shelfCode }}</p>
+            <p><strong>总数量：</strong>{{ currentBook.total }} 本</p>
+            <p>
+              <strong>可借数量：</strong>
+              <span :style="{ color: currentBook.stock > 0 ? '#67C23A' : '#F56C6C' }">
+                {{ currentBook.stock }} 本
+              </span>
+            </p>
+            <div v-if="currentBook.description" class="book-description">
+              <strong>图书简介：</strong>
+              <p>{{ currentBook.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="bookDetailDialogVisible = false">关闭</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getMyReservePage, cancelReserve as apiCancelReserve, confirmPickup as apiConfirmPickup, cancelPickup as apiCancelPickup } from '@/api/reader';
+import { getMyReservePage, cancelReserve as apiCancelReserve, confirmPickup as apiConfirmPickup, cancelPickup as apiCancelPickup, getBookById } from '@/api/reader';
 
 export default {
   name: "MyReserve",
@@ -170,13 +223,33 @@ export default {
       historyList: [],
       historyPage: 1,
       historyPageSize: 10,
-      historyTotal: 0
+      historyTotal: 0,
+      
+      // 图书详情对话框
+      bookDetailDialogVisible: false,
+      currentBook: null
     };
   },
   mounted() {
     this.loadReservingList();
   },
   methods: {
+    // 显示图书详情
+    async showBookDetail(book) {
+      try {
+        const res = await getBookById(book.bookId);
+        if (res.code === 1 || res.code === 200) {
+          this.currentBook = res.data;
+          this.bookDetailDialogVisible = true;
+        } else {
+          this.$message.error(res.msg || '获取图书详情失败');
+        }
+      } catch (error) {
+        this.$message.error('获取图书详情失败');
+        console.error(error);
+      }
+    },
+    
     // 加载预约中列表 (status=0 预约中, status=3 待领取)
     async loadReservingList() {
       this.loading = true;
@@ -415,5 +488,60 @@ export default {
   color: #c0c4cc;
   font-size: 24px;
   border-radius: 4px;
+}
+
+.book-detail {
+  padding: 10px;
+}
+
+.detail-header {
+  display: flex;
+  gap: 20px;
+}
+
+.detail-cover {
+  flex-shrink: 0;
+}
+
+.detail-info h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #303133;
+}
+
+.detail-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.detail-info strong {
+  color: #303133;
+  font-weight: 600;
+}
+
+.book-description {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #EBEEF5;
+}
+
+.book-description strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.book-description p {
+  margin: 0;
+  line-height: 1.8;
+  color: #606266;
+  font-size: 13px;
+  text-align: justify;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 </style>

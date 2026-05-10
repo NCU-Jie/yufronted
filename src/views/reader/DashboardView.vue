@@ -128,7 +128,7 @@
                 v-if="book.stock > 0"
                 type="primary" 
                 size="mini" 
-                @click.stop="handleBorrow(book)"
+                @click.stop="showBookDetail(book)"
               >
                 借阅
               </el-button>
@@ -136,7 +136,7 @@
                 v-else
                 type="warning" 
                 size="mini" 
-                @click.stop="handleReserve(book)"
+                @click.stop="showBookDetail(book)"
               >
                 预约
               </el-button>
@@ -200,7 +200,7 @@
                 v-if="book.stock > 0"
                 type="primary" 
                 size="mini" 
-                @click.stop="handleBorrow(book)"
+                @click.stop="showBookDetail(book)"
               >
                 借阅
               </el-button>
@@ -208,7 +208,7 @@
                 v-else
                 type="warning" 
                 size="mini" 
-                @click.stop="handleReserve(book)"
+                @click.stop="showBookDetail(book)"
               >
                 预约
               </el-button>
@@ -264,11 +264,29 @@
                 {{ currentBook.stock }} 本
               </span>
             </p>
+            <div v-if="currentBook.description" class="book-description">
+              <strong>图书简介：</strong>
+              <p>{{ currentBook.description }}</p>
+            </div>
           </div>
         </div>
       </div>
       <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="bookDetailDialogVisible = false">关闭</el-button>
+        <el-button 
+          v-if="currentBook && currentBook.stock > 0"
+          type="primary" 
+          @click="handleBorrow(currentBook)"
+        >
+          借阅
+        </el-button>
+        <el-button 
+          v-else-if="currentBook"
+          type="warning" 
+          @click="handleReserve(currentBook)"
+        >
+          预约
+        </el-button>
+        <el-button @click="bookDetailDialogVisible = false">关闭</el-button>
       </div>
     </el-dialog>
 
@@ -313,7 +331,7 @@
 </template>
 
 <script>
-import { getAnnouncementPage, getBookPage, searchBooks, getRecommendBooks, borrowBook, reserveBook, addCollect, deleteCollect, submitSubscribe } from '@/api/reader';
+import { getAnnouncementPage, searchBooks, getRecommendBooks, getHotBooks, getBookById, borrowBook, reserveBook, addCollect, deleteCollect, submitSubscribe } from '@/api/reader';
 import { getStatistics } from '@/api/admin';
 
 export default {
@@ -429,15 +447,15 @@ export default {
     async loadHotBooks() {
       this.booksLoading = true;
       try {
-        const res = await getBookPage(1, 10);
+        const res = await getHotBooks();
         if (res.code === 1 || res.code === 200) {
-          // 后端已返回isCollected字段，直接使用
-          this.hotBooks = res.data.records || [];
+          // 后端返回的是数组，直接使用
+          this.hotBooks = res.data || [];
         } else {
-          this.$message.error(res.msg || '加载图书失败');
+          this.$message.error(res.msg || '加载热门图书失败');
         }
       } catch (error) {
-        this.$message.error('加载图书失败');
+        this.$message.error('加载热门图书失败');
         console.error(error);
       } finally {
         this.booksLoading = false;
@@ -527,9 +545,19 @@ export default {
     },
     
     // 显示图书详情
-    showBookDetail(book) {
-      this.currentBook = book;
-      this.bookDetailDialogVisible = true;
+    async showBookDetail(book) {
+      try {
+        const res = await getBookById(book.id);
+        if (res.code === 1 || res.code === 200) {
+          this.currentBook = res.data;
+          this.bookDetailDialogVisible = true;
+        } else {
+          this.$message.error(res.msg || '获取图书详情失败');
+        }
+      } catch (error) {
+        this.$message.error('获取图书详情失败');
+        console.error(error);
+      }
     },
     
     // 处理借阅
@@ -877,5 +905,24 @@ export default {
 .detail-info p {
   font-size: 14px;
   color: #606266;
+}
+
+.book-description {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #EBEEF5;
+}
+
+.book-description strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.book-description p {
+  margin: 0;
+  line-height: 1.8;
+  color: #606266;
+  font-size: 13px;
+  text-align: justify;
 }
 </style>

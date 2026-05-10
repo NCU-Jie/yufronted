@@ -16,7 +16,11 @@
           <el-menu-item index="/reader/borrow">我的借阅</el-menu-item>
           <el-menu-item index="/reader/reserve">我的预约</el-menu-item>
           <el-menu-item index="/reader/collection">我的收藏</el-menu-item>
-        
+          <el-menu-item index="/reader/notice" class="notice-menu-item">
+            <i class="el-icon-bell"></i> 站内消息
+            <el-badge :value="unreadNoticeCount" :max="99" v-if="unreadNoticeCount > 0" class="notice-badge">
+            </el-badge>
+          </el-menu-item>
         </el-menu>
       </div>
 
@@ -54,7 +58,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters('reader', ['readerInfo']),
+    ...mapGetters('reader', ['readerInfo', 'unreadNoticeCount']),
     username() {
       return this.readerInfo?.name || '用户';
     }
@@ -101,53 +105,59 @@ export default {
   padding: 0 20px;
 }
 
-/* 左侧：logo + 导航 */
 .header-left {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 20px;
 }
 
 .logo {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
+  color: white;
 }
 
-/* 顶部导航菜单 */
 .top-menu {
-  background: transparent !important;
-  border: none !important;
-  color: white !important;
+  background-color: transparent;
+  border-bottom: none;
 }
 
-.top-menu :deep(.el-menu-item) {
-  color: white !important;
+.top-menu .el-menu-item {
+  color: white;
 }
 
-.top-menu :deep(.el-menu-item.is-active) {
-  background: #3388e5 !important;
-  border-bottom: 3px solid #fff !important;
+.top-menu .el-menu-item:hover,
+.top-menu .el-menu-item.is-active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
-/* 用户区域 */
 .header-right {
-  color: #fff;
+  color: white;
+  cursor: pointer;
 }
 
 .el-dropdown-link {
-  color: #fff;
+  color: white;
   cursor: pointer;
-  display: flex;
-  align-items: center;
 }
 
-.el-icon-user {
-  margin-right: 5px;
+/* 站内消息菜单项样式 */
+.notice-menu-item {
+  position: relative;
 }
 
-/* 内容区域 */
+.notice-badge {
+  margin-left: 8px;
+}
+
+.notice-badge :deep(.el-badge__content) {
+  background-color: #f56c6c;
+  border: none;
+}
+
 .main-box {
-  padding: 20px;
-  background: #f5f7fa;
+  background-color: #f5f7fa;
+  padding: 0;
 }
 </style>

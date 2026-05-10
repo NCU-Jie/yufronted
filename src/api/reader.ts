@@ -163,6 +163,14 @@ export function getRecommendBooks() {
   });
 }
 
+// 获取热门图书
+export function getHotBooks() {
+  return request<Result<BookVO[]>>({
+    url: '/reader/book/hot',
+    method: 'get'
+  });
+}
+
 // ==================== 借阅相关（读者） ====================
 
 // 分页查询我的借阅列表
@@ -357,3 +365,38 @@ export function getMyCollectList(page: number, pageSize: number) {
 
 // 别名导出，兼容旧代码
 export const register = readerRegister;
+
+// ==================== 站内信相关（读者） ====================
+
+// 站内信类型定义
+export interface Notice {
+  id: number;
+  readerId: number;
+  content: string;
+  isRead: number; // 0-未读, 1-已读
+  createTime: string;
+}
+
+// 获取我的站内信列表
+export function getMyNoticeList() {
+  return request<Result<Notice[]>>({
+    url: '/reader/notice/my/list',
+    method: 'get'
+  });
+}
+
+// 标记站内信为已读
+export function markNoticeAsRead(noticeId: number) {
+  return request<Result>({
+    url: `/reader/notice/read/${noticeId}`,
+    method: 'put'
+  });
+}
+
+// 删除站内信
+export function deleteNotice(noticeId: number) {
+  return request<Result>({
+    url: `/reader/notice/${noticeId}`,
+    method: 'delete'
+  });
+}

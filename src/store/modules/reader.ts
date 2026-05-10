@@ -8,7 +8,7 @@ interface LoginParams {
 }
 
 interface ReaderInfo {
-  id: number;
+  readerId: number;
   userName: string;
   name: string;
   token: string;
@@ -16,13 +16,15 @@ interface ReaderInfo {
 
 interface ReaderState {
   readerInfo: ReaderInfo | null;
+  unreadNoticeCount: number; // 未读站内信数量
 }
 
 const readerModule: Module<ReaderState, any> = {
   namespaced: true,
 
   state: {
-    readerInfo: null
+    readerInfo: null,
+    unreadNoticeCount: 0
   },
 
   mutations: {
@@ -32,7 +34,7 @@ const readerModule: Module<ReaderState, any> = {
       
       // 修改:使用localStorage替代sessionStorage,确保持久化
       localStorage.setItem('readerInfo', JSON.stringify({
-        id: payload.id,
+        readerId: payload.readerId,
         userName: payload.userName,
         name: payload.name || ''
       }));
@@ -40,8 +42,17 @@ const readerModule: Module<ReaderState, any> = {
 
     CLEAR_READER_INFO(state) {
       state.readerInfo = null;
+      state.unreadNoticeCount = 0;
       localStorage.removeItem('reader_token');
       localStorage.removeItem('readerInfo');
+    },
+
+    SET_UNREAD_NOTICE_COUNT(state, count: number) {
+      state.unreadNoticeCount = count;
+    },
+
+    INCREMENT_UNREAD_NOTICE_COUNT(state) {
+      state.unreadNoticeCount++;
     }
   },
 
@@ -54,6 +65,12 @@ const readerModule: Module<ReaderState, any> = {
       if (res.code === 1 || res.code === 200) {
         const data = res.data || res;
         commit('SET_READER_INFO', data);
+        
+        // 登录成功后建立 WebSocket 连接
+        import('@/utils/websocket').then(({ default: WebSocketManager }) => {
+          WebSocketManager.connect(data.readerId);
+        });
+        
         return true;
       }
       
@@ -62,10 +79,14 @@ const readerModule: Module<ReaderState, any> = {
     },
 
     logout({ commit }) {
+      // 退出登录时关闭 WebSocket 连接
+      import('@/utils/websocket').then(({ default: WebSocketManager }) => {
+        WebSocketManager.close();
+      });
       commit('CLEAR_READER_INFO');
     },
 
-    initialize({ commit }) {
+    async initialize({ commit }) {
       const token = localStorage.getItem('reader_token');
       if (!token || !isValidToken(token)) {
         localStorage.removeItem('reader_token');
@@ -77,13 +98,23 @@ const readerModule: Module<ReaderState, any> = {
       const readerData = localStorage.getItem('readerInfo');
       if (readerData) {
         try {
-          const { id, name, userName } = JSON.parse(readerData);
-          commit('SET_READER_INFO', { id, name, userName, token });
+          const { readerId, name, userName } = JSON.parse(readerData);
+          commit('SET_READER_INFO', { readerId, name, userName, token });
         } catch (e) {
           localStorage.removeItem('readerInfo');
           localStorage.removeItem('reader_token');
         }
       }
+    },
+
+    // 增加未读消息数
+    incrementUnreadNoticeCount({ commit }) {
+      commit('INCREMENT_UNREAD_NOTICE_COUNT');
+    },
+
+    // 设置未读消息数
+    setUnreadNoticeCount({ commit }, count: number) {
+      commit('SET_UNREAD_NOTICE_COUNT', count);
     }
   },
 
@@ -91,7 +122,8 @@ const readerModule: Module<ReaderState, any> = {
     isReaderAuthenticated: state => !!state.readerInfo?.token,
     readerToken: state => state.readerInfo?.token || null,
     readerInfo: state => state.readerInfo || null,
-    readerName: state => state.readerInfo?.name || ''
+    readerName: state => state.readerInfo?.name || '',
+    unreadNoticeCount: state => state.unreadNoticeCount
   }
 };
 

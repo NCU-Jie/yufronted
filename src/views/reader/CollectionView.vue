@@ -9,14 +9,14 @@
             v-if="scope.row.imgUrl"
             :src="getImageUrl(scope.row.imgUrl)"
             fit="cover"
-            style="width: 60px; height: 80px; border-radius: 4px;"
-            :preview-src-list="[getImageUrl(scope.row.imgUrl)]"
+            style="width: 60px; height: 80px; border-radius: 4px; cursor: pointer;"
+            @click="showBookDetail(scope.row)"
           >
             <div slot="error" class="image-error">
               <i class="el-icon-picture-outline"></i>
             </div>
           </el-image>
-          <div v-else class="no-image" style="width: 60px; height: 80px; display: flex; align-items: center; justify-content: center; background-color: #f5f7fa; border-radius: 4px;">
+          <div v-else class="no-image" style="width: 60px; height: 80px; display: flex; align-items: center; justify-content: center; background-color: #f5f7fa; border-radius: 4px; cursor: pointer;" @click="showBookDetail(scope.row)">
             <i class="el-icon-picture-outline" style="font-size: 24px; color: #909399;"></i>
           </div>
         </template>
@@ -41,7 +41,7 @@
           <el-button
             size="mini"
             :type="scope.row.stock > 0 ? 'primary' : 'warning'"
-            @click="scope.row.stock > 0 ? borrow(scope.row) : reserve(scope.row)"
+            @click="showBookDetail(scope.row)"
           >
             {{ scope.row.stock > 0 ? '借阅' : '预约' }}
           </el-button>
@@ -69,11 +69,74 @@
       style="margin-top: 20px;text-align:right;"
     >
     </el-pagination>
+
+    <!-- 图书详情对话框 -->
+    <el-dialog 
+      title="图书详情" 
+      :visible.sync="bookDetailDialogVisible" 
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="currentBook" class="book-detail">
+        <div class="detail-header">
+          <div class="detail-cover">
+            <el-image 
+              v-if="currentBook.imgUrl"
+              :src="getImageUrl(currentBook.imgUrl)"
+              fit="cover"
+              style="width: 150px; height: 200px;"
+            >
+              <div slot="error" class="image-error">
+                <i class="el-icon-picture-outline" style="font-size: 48px;"></i>
+              </div>
+            </el-image>
+            <div v-else class="no-image" style="width: 150px; height: 200px;">
+              <i class="el-icon-picture-outline" style="font-size: 48px;"></i>
+            </div>
+          </div>
+          <div class="detail-info">
+            <h3>{{ currentBook.bookName }}</h3>
+            <p><strong>作者：</strong>{{ currentBook.author }}</p>
+            <p><strong>ISBN：</strong>{{ currentBook.isbn }}</p>
+            <p><strong>出版社：</strong>{{ currentBook.publish }}</p>
+            <p><strong>书架编号：</strong>{{ currentBook.shelfCode }}</p>
+            <p><strong>总数量：</strong>{{ currentBook.total }} 本</p>
+            <p>
+              <strong>可借数量：</strong>
+              <span :style="{ color: currentBook.stock > 0 ? '#67C23A' : '#F56C6C' }">
+                {{ currentBook.stock }} 本
+              </span>
+            </p>
+            <div v-if="currentBook.description" class="book-description">
+              <strong>图书简介：</strong>
+              <p>{{ currentBook.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button 
+          v-if="currentBook && currentBook.stock > 0"
+          type="primary" 
+          @click="confirmBorrow"
+        >
+          借阅
+        </el-button>
+        <el-button 
+          v-else-if="currentBook"
+          type="warning" 
+          @click="confirmReserve"
+        >
+          预约
+        </el-button>
+        <el-button @click="bookDetailDialogVisible = false">关闭</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getMyCollectList, deleteCollect, borrowBook, reserveBook } from '@/api/reader';
+import { getMyCollectList, deleteCollect, borrowBook, reserveBook, getBookById } from '@/api/reader';
 
 export default {
   name: "MyCollect",
@@ -83,7 +146,10 @@ export default {
       collectList: [],
       page: 1,
       pageSize: 10,
-      total: 0
+      total: 0,
+      // 图书详情对话框
+      bookDetailDialogVisible: false,
+      currentBook: null
     };
   },
   mounted() {
@@ -131,18 +197,38 @@ export default {
       });
     },
     
-    // 借阅
-    async borrow(row) {
+    // 显示图书详情
+    async showBookDetail(book) {
       try {
-        await this.$confirm(`确定借阅《${row.bookName}》吗？`, '提示', { 
+        const res = await getBookById(book.bookId);
+        if (res.code === 1 || res.code === 200) {
+          this.currentBook = res.data;
+          this.bookDetailDialogVisible = true;
+        } else {
+          this.$message.error(res.msg || '获取图书详情失败');
+        }
+      } catch (error) {
+        this.$message.error('获取图书详情失败');
+        console.error(error);
+      }
+    },
+    
+    // 确认借阅
+    async confirmBorrow() {
+      if (!this.currentBook) return;
+      
+      try {
+        // 先显示确认对话框
+        await this.$confirm(`确认借阅《${this.currentBook.bookName}》吗？`, '确认借阅', { 
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning' 
         });
         
-        const res = await borrowBook(row.bookId);
+        const res = await borrowBook(this.currentBook.id);
         if (res.code === 1 || res.code === 200) {
-          this.$message.success(`《${row.bookName}》借阅成功`);
+          this.$message.success(`《${this.currentBook.bookName}》借阅成功`);
+          this.bookDetailDialogVisible = false;
           this.loadCollectList();
         } else {
           this.$message.error(res.msg || '借阅失败');
@@ -153,19 +239,23 @@ export default {
         }
       }
     },
-
-    // 预约
-    async reserve(row) {
+    
+    // 确认预约
+    async confirmReserve() {
+      if (!this.currentBook) return;
+      
       try {
-        await this.$confirm(`确定预约《${row.bookName}》吗？`, '提示', { 
+        // 先显示确认对话框
+        await this.$confirm(`确认预约《${this.currentBook.bookName}》吗？`, '确认预约', { 
           confirmButtonText: '确定',
           cancelButtonText: '取消',
-          type: 'info' 
+          type: 'warning' 
         });
         
-        const res = await reserveBook(row.bookId);
+        const res = await reserveBook(this.currentBook.id);
         if (res.code === 1 || res.code === 200) {
-          this.$message.success(`《${row.bookName}》预约成功`);
+          this.$message.success(`《${this.currentBook.bookName}》预约成功`);
+          this.bookDetailDialogVisible = false;
         } else {
           this.$message.error(res.msg || '预约失败');
         }
@@ -175,7 +265,7 @@ export default {
         }
       }
     },
-
+    
     // 取消收藏
     async cancelCollect(row) {
       try {
@@ -230,5 +320,60 @@ export default {
   justify-content: center;
   background-color: #f5f7fa;
   color: #909399;
+}
+
+.book-detail {
+  padding: 10px;
+}
+
+.detail-header {
+  display: flex;
+  gap: 20px;
+}
+
+.detail-cover {
+  flex-shrink: 0;
+}
+
+.detail-info h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #303133;
+}
+
+.detail-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.detail-info strong {
+  color: #303133;
+  font-weight: 600;
+}
+
+.book-description {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #EBEEF5;
+}
+
+.book-description strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.book-description p {
+  margin: 0;
+  line-height: 1.8;
+  color: #606266;
+  font-size: 13px;
+  text-align: justify;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 </style>

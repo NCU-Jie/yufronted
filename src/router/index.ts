@@ -84,6 +84,12 @@ const routes = [
         name: 'UserFeedback',
         component: () => import("@/views/reader/FeedbackView.vue"),
         meta: { title: "我要反馈" }
+      },
+      {
+        path: 'notice',
+        name: 'UserNotice',
+        component: () => import("@/views/reader/NoticeView.vue"),
+        meta: { title: "站内消息" }
       }
     ]
   },
