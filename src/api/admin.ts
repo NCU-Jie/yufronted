@@ -60,12 +60,22 @@ export interface BorrowAddDTO {
   bookId: number;
 }
 
+export interface BorrowQueryDTO {
+  bookId?: number;
+  bookName?: string;
+  readerId?: number;
+  readerName?: string;
+  status?: number;
+}
+
 export interface Borrow {
   id: number;
   readerId: number;
+  readerName?: string;
   bookId: number;
+  bookName?: string;
   borrowTime: string;
-  returnTime: string;
+  retd: string;
   status: number;
 }
 
@@ -293,6 +303,14 @@ export function getBookById(bookId: number) {
   });
 }
 
+// 管理员根据ID查询书籍详情
+export function getAdminBookById(bookId: number) {
+  return request<Result<Book>>({
+    url: `/admin/book/${bookId}`,
+    method: 'get'
+  });
+}
+
 // 获取统计数据(公共接口)
 export function getStatistics() {
   return request<Result<{ totalBooks: number; borrowedBooks: number; availableBooks: number }>>({
@@ -404,7 +422,9 @@ export function getBorrowPage(params: {
   page: number;
   pageSize: number;
   bookId?: number;
+  bookName?: string;
   readerId?: number;
+  readerName?: string;
   status?: number;
 }) {
   return request<Result<PageResult<Borrow>>>({
@@ -489,6 +509,7 @@ export function deleteAnnouncement(announcementId: number) {
 export function getFeedbackPage(params: {
   page: number;
   pageSize: number;
+  replied: number;
   readerId?: number;
 }) {
   return request<Result<PageResult<Feedback>>>({
@@ -581,6 +602,7 @@ export function completeReserve(reserveId: number) {
 export function getReservePage(params: {
   page: number;
   pageSize: number;
+  bookName?: string;
   readerId?: number;
   status?: number;
 }) {
@@ -607,14 +629,34 @@ export function deleteReserve(reserveId: number) {
   });
 }
 
+// 确认领取（管理员操作）
+export function adminConfirmPickup(reserveId: number) {
+  return request<Result>({
+    url: `/admin/reserve/confirm/${reserveId}`,
+    method: 'put'
+  });
+}
+
+// 取消领取（管理员操作）
+export function adminCancelPickup(reserveId: number) {
+  return request<Result>({
+    url: `/admin/reserve/cancel-pickup/${reserveId}`,
+    method: 'put'
+  });
+}
+
 // ==================== 订阅管理（管理员） ====================
 
 // 分页查询订阅列表
-export function getSubscribePage(page: number, pageSize: number) {
+export function getSubscribePage(params: {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+}) {
   return request<Result<PageResult<Subscribe>>>({
     url: '/admin/subscribe/page',
     method: 'get',
-    params: { page, pageSize }
+    params
   });
 }
 

@@ -5,25 +5,25 @@
     <!-- 数据概览卡片 -->
     <el-row :gutter="20" style="margin-bottom: 20px;">
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click.native="navigateTo('/admin/user')" style="cursor: pointer;">
           <div class="stat-title">总用户数</div>
           <div class="stat-num">{{ statistics.totalUsers }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click.native="navigateTo('/admin/book')" style="cursor: pointer;">
           <div class="stat-title">馆藏书籍</div>
           <div class="stat-num">{{ statistics.totalBooks }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click.native="navigateTo('/admin/order')" style="cursor: pointer;">
           <div class="stat-title">待处理预约</div>
           <div class="stat-num">{{ statistics.pendingReserves }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click.native="navigateTo('/admin/subscribe')" style="cursor: pointer;">
           <div class="stat-title">待处理订阅</div>
           <div class="stat-num">{{ statistics.pendingSubscribes }}</div>
         </el-card>
@@ -32,49 +32,30 @@
 
     <el-row :gutter="20">
       <el-col :span="6">
-        <el-card class="stat-card">
+        <el-card class="stat-card" @click.native="navigateTo('/admin/notice')" style="cursor: pointer;">
           <div class="stat-title">公告总数</div>
           <div class="stat-num">{{ statistics.totalAnnouncements }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">读者反馈</div>
-          <div class="stat-num">{{ statistics.totalFeedbacks }}</div>
+        <el-card class="stat-card" @click.native="navigateTo('/admin/feedback')" style="cursor: pointer;">
+          <div class="stat-title">待处理反馈</div>
+          <div class="stat-num">{{ statistics.pendingFeedbacks }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">借阅记录</div>
+        <el-card class="stat-card" @click.native="navigateTo('/admin/borrow')" style="cursor: pointer;">
+          <div class="stat-title">在借记录</div>
           <div class="stat-num">{{ statistics.totalBorrows }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">今日登录</div>
+        <el-card class="stat-card" @click.native="navigateTo('/admin/log')" style="cursor: pointer;">
+          <div class="stat-title">今日登录读者</div>
           <div class="stat-num">{{ statistics.todayLogins }}</div>
         </el-card>
       </el-col>
     </el-row>
-
-   
-
-    <!-- 待处理事项 -->
-    <el-card style="margin-top: 20px;">
-      <h3 style="margin-bottom: 15px;">待处理事项</h3>
-      <el-table :data="todoList" border style="width: 100%">
-        <el-table-column prop="title" label="事项" />
-        <el-table-column prop="type" label="类型" />
-        <el-table-column prop="user" label="用户" />
-        <el-table-column label="操作">
-          <template #default="scope">
-            <el-button type="primary" size="mini" @click="$router.push(scope.row.path)">
-              去处理
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
   </div>
 </template>
 
@@ -91,15 +72,10 @@ export default {
         pendingReserves: 0,
         pendingSubscribes: 0,
         totalAnnouncements: 0,
-        totalFeedbacks: 0,
+        pendingFeedbacks: 0,
         totalBorrows: 0,
         todayLogins: 0
       },
-      todoList: [
-        { title: '处理新书入库申请', type: '书籍管理', user: '管理员A', path: '/admin/book' },
-        { title: '审核读者注册申请', type: '用户管理', user: '张三', path: '/admin/user' },
-        { title: '处理逾期归还提醒', type: '借阅管理', user: '李四', path: '/admin/order' }
-      ]
     };
   },
   mounted() {
@@ -116,7 +92,7 @@ export default {
             pendingReserves: res.data.pendingReserves || 0,
             pendingSubscribes: res.data.pendingSubscribes || 0,
             totalAnnouncements: res.data.totalAnnouncements || 0,
-            totalFeedbacks: res.data.totalFeedbacks || 0,
+            pendingFeedbacks: res.data.pendingFeedbacks || 0,
             totalBorrows: res.data.totalBorrows || 0,
             todayLogins: res.data.todayLogins || 0
           };
@@ -128,6 +104,9 @@ export default {
         console.error('加载统计数据失败', error);
         this.$message.error('加载统计数据失败');
       }
+    },
+    navigateTo(path) {
+      this.$router.push(path);
     }
   }
 };
@@ -137,6 +116,11 @@ export default {
 .stat-card {
   text-align: center;
   padding: 15px 0;
+  transition: all 0.3s;
+}
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .stat-title {
   font-size: 14px;

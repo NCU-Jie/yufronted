@@ -16,8 +16,11 @@
           <el-menu-item index="/admin/manager">管理员管理</el-menu-item>
           <el-menu-item index="/admin/user">用户管理</el-menu-item>
           <el-menu-item index="/admin/book">书籍管理</el-menu-item>
-          <el-menu-item index="/admin/order">预约/订阅</el-menu-item>
-          <el-menu-item index="/admin/notice">公告/反馈</el-menu-item>
+          <el-menu-item index="/admin/borrow">借阅管理</el-menu-item>
+          <el-menu-item index="/admin/order">预约管理</el-menu-item>
+          <el-menu-item index="/admin/subscribe">订阅管理</el-menu-item>
+          <el-menu-item index="/admin/notice">公告管理</el-menu-item>
+          <el-menu-item index="/admin/feedback">反馈管理</el-menu-item>
           <el-menu-item index="/admin/log">行为日志</el-menu-item>
         </el-menu>
       </div>

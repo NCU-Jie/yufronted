@@ -132,6 +132,31 @@
         <el-button @click="bookDetailDialogVisible = false">关闭</el-button>
       </div>
     </el-dialog>
+
+    <!-- 借阅期限选择对话框 -->
+    <el-dialog 
+      title="选择借阅期限" 
+      :visible.sync="borrowPeriodDialogVisible" 
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="currentBook" style="text-align: center;">
+        <p style="margin-bottom: 20px; font-size: 16px;">
+          请选择《{{ currentBook.bookName }}》的借阅期限：
+        </p>
+        <el-radio-group v-model="selectedBorrowPeriod" size="medium">
+          <el-radio-button :label="7">7天</el-radio-button>
+          <el-radio-button :label="30">30天</el-radio-button>
+        </el-radio-group>
+        <div style="margin-top: 20px; color: #909399; font-size: 14px;">
+          到期时间：{{ new Date(new Date().getTime() + selectedBorrowPeriod * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN') }}
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="borrowPeriodDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitBorrow">确认借阅</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -149,7 +174,10 @@ export default {
       total: 0,
       // 图书详情对话框
       bookDetailDialogVisible: false,
-      currentBook: null
+      currentBook: null,
+      // 借阅期限选择对话框
+      borrowPeriodDialogVisible: false,
+      selectedBorrowPeriod: 30 // 默认30天
     };
   },
   mounted() {
@@ -217,26 +245,37 @@ export default {
     async confirmBorrow() {
       if (!this.currentBook) return;
       
+      // 打开借阅期限选择对话框
+      this.selectedBorrowPeriod = 30; // 默认30天
+      this.borrowPeriodDialogVisible = true;
+    },
+    
+    // 确认借阅期限并提交
+    async submitBorrow() {
+      if (!this.currentBook) return;
+      
       try {
-        // 先显示确认对话框
-        await this.$confirm(`确认借阅《${this.currentBook.bookName}》吗？`, '确认借阅', { 
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning' 
+        // 计算到期时间
+        const now = new Date();
+        const dueDate = new Date(now.getTime() + this.selectedBorrowPeriod * 24 * 60 * 60 * 1000);
+        const dueTime = dueDate.toISOString().slice(0, 19).replace('T', ' ');
+        
+        const res = await borrowBook({
+          bookId: this.currentBook.id,
+          dueTime: dueTime
         });
         
-        const res = await borrowBook(this.currentBook.id);
         if (res.code === 1 || res.code === 200) {
-          this.$message.success(`《${this.currentBook.bookName}》借阅成功`);
+          this.$message.success(`《${this.currentBook.bookName}》借阅成功，到期时间：${dueTime}`);
+          this.borrowPeriodDialogVisible = false;
           this.bookDetailDialogVisible = false;
           this.loadCollectList();
         } else {
           this.$message.error(res.msg || '借阅失败');
         }
       } catch (error) {
-        if (error !== 'cancel') {
-          this.$message.error(error.message || '借阅失败');
-        }
+        this.$message.error(error.message || '借阅失败');
+        console.error(error);
       }
     },
     

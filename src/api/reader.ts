@@ -195,10 +195,11 @@ export function returnBook(borrowId: number) {
 }
 
 // 借阅书籍
-export function borrowBook(bookId: number) {
+export function borrowBook(data: { bookId: number; dueTime?: string }) {
   return request<Result>({
-    url: `/reader/borrow/${bookId}`,
-    method: 'post'
+    url: '/reader/borrow',
+    method: 'post',
+    data
   });
 }
 

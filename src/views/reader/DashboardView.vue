@@ -290,6 +290,31 @@
       </div>
     </el-dialog>
 
+    <!-- 借阅期限选择对话框 -->
+    <el-dialog
+      title="选择借阅期限"
+      :visible.sync="borrowPeriodDialogVisible"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="currentBook" style="text-align: center; padding: 20px 0;">
+        <p style="margin-bottom: 20px; font-size: 16px;">
+          请选择《{{ currentBook.bookName }}》的借阅期限：
+        </p>
+        <el-radio-group v-model="selectedBorrowPeriod" size="medium">
+          <el-radio-button :label="7">7天</el-radio-button>
+          <el-radio-button :label="30">30天</el-radio-button>
+        </el-radio-group>
+        <p style="margin-top: 20px; color: #909399; font-size: 14px;">
+          到期时间：{{ new Date(new Date().getTime() + selectedBorrowPeriod * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN') }}
+        </p>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="borrowPeriodDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitBorrow">确认借阅</el-button>
+      </div>
+    </el-dialog>
+
     <!-- 订阅图书对话框 -->
     <el-dialog 
       title="订阅图书" 
@@ -380,19 +405,22 @@ export default {
       bookDetailDialogVisible: false,
       currentBook: null,
       
+      // 借阅期限选择对话框
+      borrowPeriodDialogVisible: false,
+      selectedBorrowPeriod: 30, // 默认30天
+      
       // 订阅图书对话框
       subscribeDialogVisible: false,
+      subscribeLoading: false,
       subscribeForm: {
-        bookName: "",
-        author: "",
-        remark: ""
+        bookId: null,
+        remark: ''
       },
       subscribeRules: {
-        bookName: [
-          { required: true, message: '请输入书名', trigger: 'blur' }
+        bookId: [
+          { required: true, message: '请选择图书', trigger: 'change' }
         ]
-      },
-      subscribeLoading: false
+      }
     };
   },
   mounted() {
@@ -560,27 +588,41 @@ export default {
       }
     },
     
-    // 处理借阅
-    async handleBorrow(book) {
+    // 处理借阅 - 打开期限选择对话框
+    handleBorrow(book) {
+      this.currentBook = book;
+      this.selectedBorrowPeriod = 30; // 默认30天
+      this.borrowPeriodDialogVisible = true;
+    },
+
+    // 确认借阅期限并提交
+    async submitBorrow() {
+      if (!this.currentBook) return;
+      
       try {
-        await this.$confirm('确认借阅该图书吗？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
+        // 计算到期时间
+        const now = new Date();
+        const dueDate = new Date(now.getTime() + this.selectedBorrowPeriod * 24 * 60 * 60 * 1000);
+        // 格式化为 YYYY-MM-DD HH:mm:ss
+        const dueTime = dueDate.toISOString().slice(0, 19).replace('T', ' ');
+        
+        const res = await borrowBook({
+          bookId: this.currentBook.id,
+          dueTime: dueTime
         });
         
-        const res = await borrowBook(book.id);
         if (res.code === 1 || res.code === 200) {
-          this.$message.success('借阅成功');
+          this.$message.success(`借阅成功，到期时间：${dueTime}`);
+          this.borrowPeriodDialogVisible = false;
+          this.bookDetailDialogVisible = false;
           // 刷新图书列表，更新库存
           this.loadHotBooks();
         } else {
           this.$message.error(res.msg || '借阅失败');
         }
       } catch (error) {
-        if (error !== 'cancel') {
-          this.$message.error(error.message || '借阅失败');
-        }
+        this.$message.error(error.message || '借阅失败');
+        console.error(error);
       }
     },
     

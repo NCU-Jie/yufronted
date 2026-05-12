@@ -121,16 +121,34 @@ const routes = [
         meta: { title: "图书管理" }
       },
       {
+        path: 'borrow',
+        name: 'AdminBorrow',
+        component: () => import("@/views/admin/AdminBorrow.vue"),
+        meta: { title: "借阅管理" }
+      },
+      {
         path: 'order',
         name: 'AdminOrder',
         component: () => import("@/views/admin/AdminOrder.vue"),
-        meta: { title: "预约/订阅管理" }
+        meta: { title: "预约管理" }
+      },
+      {
+        path: 'subscribe',
+        name: 'AdminSubscribe',
+        component: () => import("@/views/admin/AdminSubscribe.vue"),
+        meta: { title: "订阅管理" }
       },
       {
         path: 'notice',
         name: 'AdminNotice',
         component: () => import("@/views/admin/AdminNotice.vue"),
-        meta: { title: "公告/反馈管理" }
+        meta: { title: "公告管理" }
+      },
+      {
+        path: 'feedback',
+        name: 'AdminFeedback',
+        component: () => import("@/views/admin/AdminFeedback.vue"),
+        meta: { title: "反馈管理" }
       },
       {
         path: 'log',

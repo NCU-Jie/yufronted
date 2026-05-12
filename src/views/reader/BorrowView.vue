@@ -26,10 +26,10 @@
           </el-table-column>
           <el-table-column prop="bookName" label="书名" />
           <el-table-column prop="borrowTime" label="借阅日期" />
-          <el-table-column prop="returnTime" label="应还日期" />
+          <el-table-column prop="dueTime" label="应还日期" />
           <el-table-column label="剩余天数">
             <template slot-scope="scope">
-              {{ calculateDaysLeft(scope.row.returnTime) }}
+              {{ calculateDaysLeft(scope.row.dueTime) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="150">
@@ -247,11 +247,11 @@ export default {
     },
     
     // 计算剩余天数
-    calculateDaysLeft(returnTime) {
-      if (!returnTime) return '-';
-      const returnDate = new Date(returnTime);
+    calculateDaysLeft(dueTime) {
+      if (!dueTime) return '-';
+      const dueDate = new Date(dueTime);
       const today = new Date();
-      const diffTime = returnDate - today;
+      const diffTime = dueDate - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays > 0 ? `${diffDays}天` : '已逾期';
     },

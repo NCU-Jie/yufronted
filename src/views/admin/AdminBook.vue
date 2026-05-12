@@ -37,20 +37,28 @@
     <!-- 表格 -->
     <el-table :data="bookList" border style="width: 100%;" v-loading="loading">
 
+      <el-table-column label="序号" align="center" width="80">
+        <template slot-scope="scope">
+          {{ (page - 1) * pageSize + scope.$index + 1 }}
+        </template>
+      </el-table-column>
+
       <el-table-column label="封面" prop="imgUrl" align="center" width="120">
         <template slot-scope="scope">
           <el-image
             v-if="scope.row.imgUrl"
             :src="getImageUrl(scope.row.imgUrl)"
             fit="cover"
-            style="width: 60px; height: 80px; border-radius: 4px;"
-            :preview-src-list="[getImageUrl(scope.row.imgUrl)]"
+            style="width: 60px; height: 80px; border-radius: 4px; cursor: pointer;"
+            @click="showBookDetail(scope.row)"
           >
             <div slot="error" class="image-error">
               <i class="el-icon-picture-outline"></i>
             </div>
           </el-image>
-          <span v-else class="no-image">无图片</span>
+          <div v-else class="no-image" style="cursor: pointer;" @click="showBookDetail(scope.row)">
+            无图片
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="书名" prop="bookName" align="center" />
@@ -102,12 +110,10 @@
             <el-image
               :src="getImageUrl(bookForm.imgUrl)"
               fit="cover"
-              style="width: 100px; height: 130px; border-radius: 4px; margin-top: 10px;"
-              :preview-src-list="[getImageUrl(bookForm.imgUrl)]"
+              style="width: 100px; height: 130px; margin-top: 8px; border-radius: 4px;"
             >
               <div slot="error" class="image-error">
                 <i class="el-icon-picture-outline"></i>
-                <span>图片加载失败</span>
               </div>
             </el-image>
           </div>
@@ -140,42 +146,82 @@
           <el-input v-model="bookForm.shelfCode" placeholder="请输入书架编号" />
         </el-form-item>
         <el-form-item label="库存" prop="stock">
-          <el-input v-model.number="bookForm.stock" type="number" placeholder="请输入库存" />
+          <el-input-number v-model="bookForm.stock" :min="0" style="width: 100%;" />
         </el-form-item>
         <el-form-item label="总数" prop="total">
-          <el-input v-model.number="bookForm.total" type="number" placeholder="请输入总数" />
+          <el-input-number v-model="bookForm.total" :min="0" style="width: 100%;" />
         </el-form-item>
       </el-form>
-      <div slot="footer">
+      <div slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitForm">确定</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 图书详情对话框 -->
+    <el-dialog title="图书详情" :visible.sync="bookDetailDialogVisible" width="700px">
+      <div v-if="currentBook" style="display: flex; gap: 20px;">
+        <div style="flex-shrink: 0;">
+          <el-image 
+            :src="getImageUrl(currentBook.imgUrl)" 
+            fit="cover"
+            style="width: 150px; height: 200px; border-radius: 4px;"
+          >
+            <div slot="error" class="image-slot" style="width: 150px; height: 200px; display: flex; align-items: center; justify-content: center; background-color: #f5f7fa; border-radius: 4px;">
+              <i class="el-icon-picture-outline" style="font-size: 48px;"></i>
+            </div>
+          </el-image>
+        </div>
+        <div class="detail-info" style="flex: 1;">
+          <h3 style="margin-top: 0;">{{ currentBook.bookName }}</h3>
+          <p><strong>作者：</strong>{{ currentBook.author }}</p>
+          <p><strong>ISBN：</strong>{{ currentBook.isbn }}</p>
+          <p><strong>出版社：</strong>{{ currentBook.publish }}</p>
+          <p><strong>分类：</strong>{{ currentBook.category }}</p>
+          <p><strong>书架编号：</strong>{{ currentBook.shelfCode }}</p>
+          <p><strong>总数量：</strong>{{ currentBook.total }} 本</p>
+          <p>
+            <strong>可借数量：</strong>
+            <span :style="{ color: currentBook.stock > 0 ? '#67C23A' : '#F56C6C' }">
+              {{ currentBook.stock }} 本
+            </span>
+          </p>
+          <div v-if="currentBook.description" class="book-description" style="margin-top: 15px;">
+            <strong>图书简介：</strong>
+            <p style="margin-top: 8px; line-height: 1.6; max-height: 150px; overflow-y: auto;">{{ currentBook.description }}</p>
+          </div>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="bookDetailDialogVisible = false">关闭</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
-import { getBookPage, addBook, updateBook, deleteBook } from '@/api/admin';
+import { getBookPage, addBook, updateBook, deleteBook, getAdminBookById } from '@/api/admin';
 
 export default {
   name: 'AdminBook',
   data() {
     return {
-      searchText: '',
+      loading: false,
+      bookList: [],
+      page: 1,
+      pageSize: 10,
+      total: 0,
       searchForm: {
         bookName: '',
         author: '',
         publish: '',
         category: ''
       },
-      page: 1,
-      pageSize: 10,
-      total: 0,
-      bookList: [],
       dialogVisible: false,
       isEdit: false,
       bookForm: {
         id: null,
+        imgUrl: '',
         bookName: '',
         author: '',
         isbn: '',
@@ -183,29 +229,35 @@ export default {
         category: '',
         shelfCode: '',
         stock: 0,
-        total: 0,
-        imgUrl: ''
+        total: 0
       },
       rules: {
         bookName: [{ required: true, message: '请输入书名', trigger: 'blur' }],
         author: [{ required: true, message: '请输入作者', trigger: 'blur' }],
         isbn: [{ required: true, message: '请输入ISBN', trigger: 'blur' }],
-        stock: [{ required: true, message: '请输入库存', trigger: 'blur' }],
-        total: [{ required: true, message: '请输入总数', trigger: 'blur' }]
-      }
-    }
+        publish: [{ required: true, message: '请输入出版社', trigger: 'blur' }],
+        category: [{ required: true, message: '请选择分类', trigger: 'change' }],
+        shelfCode: [{ required: true, message: '请输入书架编号', trigger: 'blur' }]
+      },
+      // 图书详情对话框
+      bookDetailDialogVisible: false,
+      currentBook: null
+    };
   },
   mounted() {
     this.loadBooks();
   },
   methods: {
-    // 获取图片完整URL
-    getImageUrl(imgUrl) {
-      if (!imgUrl) return '';
-      // 清理URL中的特殊字符（反引号、引号等）
-      const cleanUrl = imgUrl.replace(/[`'"]/g, '');
-      // 拼接完整URL
-      return 'http://localhost:8080' + cleanUrl;
+    // 处理图片URL
+    getImageUrl(url) {
+      if (!url) return '';
+      // 去除可能存在的反引号、引号等特殊字符
+      const cleanUrl = url.replace(/[`'"]/g, '');
+      // 如果是相对路径，添加后端服务器地址
+      if (cleanUrl.startsWith('/')) {
+        return process.env.VUE_APP_BASE_API ? `${process.env.VUE_APP_BASE_API}${cleanUrl}` : `http://localhost:8080${cleanUrl}`;
+      }
+      return cleanUrl;
     },
     async loadBooks() {
       this.loading = true;
@@ -249,21 +301,28 @@ export default {
       this.isEdit = false;
       this.bookForm = {
         id: null,
+        imgUrl: '',
         bookName: '',
         author: '',
         isbn: '',
         publish: '',
+        category: '',
         shelfCode: '',
         stock: 0,
-        total: 0,
-        imgUrl: ''
+        total: 0
       };
       this.dialogVisible = true;
+      this.$nextTick(() => {
+        this.$refs.formRef && this.$refs.formRef.clearValidate();
+      });
     },
     openEditDialog(row) {
       this.isEdit = true;
       this.bookForm = { ...row };
       this.dialogVisible = true;
+      this.$nextTick(() => {
+        this.$refs.formRef && this.$refs.formRef.clearValidate();
+      });
     },
     async submitForm() {
       this.$refs.formRef.validate(async (valid) => {
@@ -276,7 +335,7 @@ export default {
               res = await addBook(this.bookForm);
             }
             if (res.code === 1 || res.code === 200) {
-              this.$message.success(this.isEdit ? '编辑成功' : '添加成功');
+              this.$message.success(this.isEdit ? '修改成功' : '添加成功');
               this.dialogVisible = false;
               this.loadBooks();
             } else {
@@ -303,7 +362,23 @@ export default {
           this.$message.error('删除失败');
           console.error(error);
         }
+      }).catch(() => {
+        // 用户取消操作，不做处理
       });
+    },
+    async showBookDetail(row) {
+      try {
+        const res = await getAdminBookById(row.id);
+        if (res.code === 1 || res.code === 200) {
+          this.currentBook = res.data;
+          this.bookDetailDialogVisible = true;
+        } else {
+          this.$message.error(res.msg || '获取图书详情失败');
+        }
+      } catch (error) {
+        this.$message.error('获取图书详情失败');
+        console.error(error);
+      }
     },
     handleSizeChange(val) {
       this.pageSize = val;
@@ -314,33 +389,5 @@ export default {
       this.loadBooks();
     }
   }
-}
+};
 </script>
-
-<style scoped>
-.image-error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: #f5f7fa;
-  color: #909399;
-  font-size: 12px;
-}
-
-.image-error i {
-  font-size: 24px;
-  margin-bottom: 4px;
-}
-
-.no-image {
-  color: #909399;
-  font-size: 12px;
-}
-
-.image-preview {
-  margin-top: 8px;
-}
-</style>
